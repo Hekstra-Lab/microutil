@@ -56,13 +56,16 @@ def load_image_sequence(filenames, z_centered=True, pattern=None):
             )
         Z -= Z[int(len(Z) / 2 - 0.5)]
 
-    n_times = meta["Summary"]["Frames"]
+
+    # n_times = meta["Summary"]["Frames"]
+    arr = da.from_zarr(t.aszarr())
+    n_times = arr.shape[1]
 
     # Nominal timepoints in ms
     Times = np.linspace(0, meta["Summary"]["Interval_ms"] * n_times, n_times)
 
     arr = xr.DataArray(
-        da.from_zarr(t.aszarr()),
+        arr,
         dims=("pos", "time", "channel", "z", "y", "x"),
         coords={"channel": channel_names, "z": Z, "time": Times},
         attrs={"Summary": meta["Summary"], "Comment": meta["Comments"]["Summary"]},
