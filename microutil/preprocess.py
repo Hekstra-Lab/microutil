@@ -1,6 +1,7 @@
 import dask.array as da
 import numpy as np
-import xarry as xr
+import xarray as xr
+import pandas as pd
 
 __all__ = [
     lstsq_slope_dropna,
