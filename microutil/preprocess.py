@@ -7,6 +7,7 @@ __all__ = [
     "lstsq_slope_dropna",
     "compute_power_spectrum",
     "xarray_plls",
+    "squash_zstack",
 ]
 
 
@@ -54,3 +55,25 @@ def xarray_plls(y, logR_array):
         dask="parallelized",
         dask_gufunc_kwargs={"allow_rechunk": True},
     )
+
+def squash_zstack(data, squash_fn='max', bf_name='BF', channel_name='channel'):
+    """
+    Use PLLS to select the best BF slice and compress the fluorescent z stacks using squash_fn.
+    Valid squash_fn's are 'max' and 'mean'.
+    """
+    bf = data.sel({channel_name:bf_name})
+    fluo = data.sel(channel=data.channel!=bf_name)
+    
+    if squash_fn=='max':
+        fluo_out = fluo.max('z')
+    if squash_fn=='mean':
+        fluo_out = fluo.mean('z')
+                                                                            
+    #Now do PLLS for Brightfield
+    power_spec = compute_power_spectrum(bf)
+    best_slices = xarray_plls(power_spec, power_spec.group_bins).load().argmin('z')
+    best_bf = bf.isel(z=best_slices)
+    
+    result = xr.concat((best_bf, fluo_out), dim=channel_name)
+   
+    return result.transpose(...,'y','x')
