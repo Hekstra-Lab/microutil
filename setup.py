@@ -21,12 +21,7 @@ setup_args = dict(
     # long_description=long_description,
     # long_description_content_type="text/markdown",
     packages=find_packages(),
-    install_requires=[
-        "matplotlib>=3.3",
-        "dask",
-        "xarray",
-        "tifffile"
-    ],
+    install_requires=["matplotlib>=3.3", "dask", "xarray", "tifffile"],
     author="Ian Hunt-Isaak, John Russell",
     author_email="ianhuntisaak@g.harvard.edu, johnrussell@g.harvard.edu",
     license="BSD 3-Clause",

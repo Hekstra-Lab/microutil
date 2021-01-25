@@ -56,7 +56,6 @@ def load_image_sequence(filenames, z_centered=True, pattern=None):
             )
         Z -= Z[int(len(Z) / 2 - 0.5)]
 
-
     # n_times = meta["Summary"]["Frames"]
     arr = da.from_zarr(t.aszarr())
     n_times = arr.shape[1]
