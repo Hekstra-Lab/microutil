@@ -4,9 +4,9 @@ import xarray as xr
 import pandas as pd
 
 __all__ = [
-    lstsq_slope_dropna,
-    compute_power_spectrum,
-    xarray_plls,
+    "lstsq_slope_dropna",
+    "compute_power_spectrum",
+    "xarray_plls",
 ]
 
 
