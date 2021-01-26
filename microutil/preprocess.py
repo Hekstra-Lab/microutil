@@ -77,4 +77,4 @@ def squash_zstack(data, squash_fn="max", bf_name="BF", channel_name="channel"):
 
     result = xr.concat((best_bf, fluo_out), dim=channel_name)
 
-    return result.transpose(..., "y", "x")
+    return result.transpose(..., "y", "x").drop("z")
