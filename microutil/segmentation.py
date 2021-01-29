@@ -176,6 +176,10 @@ def manual_segmentation(img, mask=None):
         #     mask = nr.zeros_like(img, dtype=np.int)
         # elif isinstance(img, da.Array):
         #     mask = np.zeros_like(img)
+    elif not isinstance(mask, np.ndarray):
+        print("casting mask to numpy array")
+        print("see https://github.com/napari/napari/issues/2190 for details")
+        mask = np.array(mask)
 
     with napari.gui_qt():
         # create the viewer and add the cells image
@@ -213,4 +217,7 @@ def manual_segmentation(img, mask=None):
 
         labels.mouse_wheel_callbacks.append(brush_size_callback)
 
-    return labels.data
+    if isinstance(img, xr.DataArray):
+        return xr.DataArray(labels.data, coords=img.coords, dims=img.dims)
+    else:
+        return labels.data
