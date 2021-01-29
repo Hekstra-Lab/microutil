@@ -1,5 +1,8 @@
 __all__ = [
+    "apply_unet",
     "unet",
+    "threshold_predictions",
+    "individualize",
     "manual_segmentation",
 ]
 
@@ -8,6 +11,130 @@ import napari
 import numpy as np
 import xarray as xr
 import dask.array as da
+import scipy.ndimage as ndi
+from skimage.exposure import equalize_adapthist
+from skimage.filters import threshold_isodata
+from skimage.feature import peak_local_max
+from skimage.morphology import label
+from skimage.segmentation import watershed
+
+
+def apply_unet(data, model):
+    """
+    Apply the UNET to make pixel-wise predictions of cell vs not-cell
+
+    Parameters
+    ----------
+    data : array-like
+        The final two axes should be XY
+    model : str or unet instance
+        Either an instance of a loaded unet model or a path the model weights
+
+    Returns
+    -------
+    mask : array-like
+        The predicted mask
+    """
+    is_xarr = False
+    if isinstance(data, xr.DataArray):
+        arr = data.values
+        is_xarr = True
+    else:
+        arr = data
+
+    # TODO make this xarray/dask parallelize if applicable
+    arr = np.vectorize(equalize_adapthist, signature="(x,y)->(x,y)")(arr)
+
+    orig_shape = arr.shape
+    row_add = 16 - orig_shape[-2] % 16
+    col_add = 16 - orig_shape[-1] % 16
+    npad = [(0, 0)] * arr.ndim
+    npad[-1] = (0, row_add)
+    npad[-2] = (0, col_add)
+
+    arr = np.pad(arr, npad)
+
+    # manipulate into shape that tensorflow expects
+    if len(orig_shape) == 2:
+        arr = arr[None, :, :, None]
+    else:
+        arr = arr.reshape(
+            (
+                np.prod(orig_shape[:-2]),
+                orig_shape[-2] + row_add,
+                orig_shape[-1] + col_add,
+                1,
+            )
+        )
+
+    if isinstance(model, str):
+        model = unet(model, (None, None, 1))
+
+    # need the final reshape to squeeze off a potential leading 1 in the shape
+    # but we can't squeeze because that might remove axis with size 1
+    out = model.predict(arr)[..., :-row_add, :-col_add, 0].reshape(orig_shape)
+    if is_xarr:
+        return xr.DataArray(out, dims=data.dims, coords=data.coords)
+    else:
+        return out
+
+
+def threshold_predictions(predictions, threshold=None):
+    """
+    Parameters
+    ----------
+    predictions : array-like
+    threshold : float or None, default: None
+        If None the threshold will automatically determined using
+        skimage.filters.threshold_isodata
+
+    Returns
+    -------
+    mask : array of bool
+    """
+    if threshold is None:
+        threshold = threshold_isodata(np.asarray(predictions))
+    return predictions > threshold
+
+
+def individualize(mask, min_distance=10, connectivity=2):
+    """
+    Turn a boolean mask into a a mask of cell ids
+
+    Parameters
+    ---------
+    mask : array-like
+        Last two dimensions should be XY
+    min_distance : int, default: 10
+        Passed through to scipy.ndimage.morphology.distance_transform_edt
+    connectivity : int, default: 2
+        Passed through to skimage.segmentation.watershed
+
+    Returns
+    -------
+    cell_ids : array-like of int
+        The mask is now 0 for backgroud and integers for cell ids
+    """
+
+    def _individualize(mask):
+        dtr = ndi.morphology.distance_transform_edt(mask)
+        topology = -dtr
+
+        peak_idx = peak_local_max(-topology, min_distance)
+        peak_mask = np.zeros_like(mask, dtype=bool)
+        peak_mask[tuple(peak_idx.T)] = True
+
+        m_lab = label(peak_mask)
+        return watershed(topology, m_lab, mask=mask, connectivity=2)
+
+    return xr.apply_ufunc(
+        _individualize,
+        mask,
+        input_core_dims=[["x", "y"]],
+        output_core_dims=[["x", "y"]],
+        dask="parallelized",
+        vectorize=True,
+    )
 
 
 def manual_segmentation(img, mask=None):
@@ -27,13 +154,15 @@ def manual_segmentation(img, mask=None):
         The mask that was updated by user interactions
     """
     if mask is None:
-        if isinstance(img, np.ndarray):
-            mask = np.zeros_like(img)
-        elif isinstance(img, xr.DataArray):
-            mask = xr.zeros_like(img)
-        elif isinstance(img, da.Array):
-            mask = np.zeros_like(img)
-    
+        # needs to be numpy as all other options do not seem to work
+        # see https://github.com/napari/napari/issues/2190
+        mask = np.zeros_like(img, dtype=np.int)
+        # if isinstance(img, np.ndarray):
+        #     mask = np.zeros_like(img,dtype=np.int)
+        # elif isinstance(img, xr.DataArray):
+        #     mask = nr.zeros_like(img, dtype=np.int)
+        # elif isinstance(img, da.Array):
+        #     mask = np.zeros_like(img)
 
     with napari.gui_qt():
         # create the viewer and add the cells image
@@ -61,16 +190,14 @@ def manual_segmentation(img, mask=None):
         def new_cell(viewer):
             labels.selected_label = labels.data.max() + 1
 
-            
         # scrolling in paint mode changes the brush size
         def brush_size_callback(layer, event):
             if labels.mode in ["paint", "erase"]:
                 if event.delta[1] > 0:
                     labels.brush_size += 1
                 else:
-                    labels.brush_size = max(labels.brush_size-1,1)
+                    labels.brush_size = max(labels.brush_size - 1, 1)
 
         labels.mouse_wheel_callbacks.append(brush_size_callback)
-
 
     return labels.data
