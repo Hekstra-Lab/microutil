@@ -7,7 +7,10 @@ __all__ = [
 ]
 
 from ._unet import unet
-import napari
+try:
+    import napari
+except ImportError:
+    pass
 import numpy as np
 import xarray as xr
 import dask.array as da
