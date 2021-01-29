@@ -6,11 +6,21 @@ __all__ = [
     "manual_segmentation",
 ]
 
-from ._unet import unet
+
+# these try except blocks are due to the fact that
+# tensorflow doesn't support python 3.9 yet (2021-01-29)
+# on macOS big sur napari only works on  python 3.9.0
+# So two envs are needed for mac users (e.g. indrani)
+# this allows importing this file from either env.
+try:
+    from ._unet import unet
+except ImportError:
+    pass
 try:
     import napari
 except ImportError:
     pass
+
 import numpy as np
 import xarray as xr
 import dask.array as da
