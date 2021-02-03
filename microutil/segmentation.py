@@ -143,8 +143,8 @@ def individualize(mask, min_distance=10, connectivity=2):
     return xr.apply_ufunc(
         _individualize,
         mask,
-        input_core_dims=[["x", "y"]],
-        output_core_dims=[["x", "y"]],
+        input_core_dims=[["y", "x"]],
+        output_core_dims=[["y", "x"]],
         dask="parallelized",
         vectorize=True,
     )

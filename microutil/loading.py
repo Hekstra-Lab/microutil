@@ -68,5 +68,5 @@ def load_image_sequence(filenames, z_centered=True, pattern=None):
         dims=("pos", "time", "channel", "z", "y", "x"),
         coords={"channel": channel_names, "z": Z, "time": Times},
         attrs={"Summary": meta["Summary"], "Comment": meta["Comments"]["Summary"]},
-    )
+    ).transpose(..., "x", "y")
     return arr
