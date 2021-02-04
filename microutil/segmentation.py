@@ -15,7 +15,7 @@ __all__ = [
 try:
     from ._unet import unet
 except ImportError:
-    pass
+    unet = None
 try:
     import napari
 except ImportError:
