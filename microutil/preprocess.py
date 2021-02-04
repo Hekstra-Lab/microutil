@@ -57,13 +57,13 @@ def xarray_plls(y, logR_array):
     )
 
 
-def squash_zstack(data, squash_fn="max", bf_name="BF", channel_name="channel"):
+def squash_zstack(data, squash_fn="max", bf_name="BF", channel_name="channel", transpose=True):
     """
     Use PLLS to select the best BF slice and compress the fluorescent z stacks using squash_fn.
     Valid squash_fn's are 'max' and 'mean'.
     """
     bf = data.sel({channel_name: bf_name})
-    fluo = data.sel(channel=data.channel != bf_name)
+    fluo = data.sel({channel_name: data[channel_name] != bf_name})
 
     if squash_fn == "max":
         fluo_out = fluo.max("z")
@@ -76,5 +76,8 @@ def squash_zstack(data, squash_fn="max", bf_name="BF", channel_name="channel"):
     best_bf = bf.isel(z=best_slices)
 
     result = xr.concat((best_bf, fluo_out), dim=channel_name)
-
-    return result.transpose(..., "y", "x").drop("z")
+    
+    if transpose:
+        return result.transpose(..., "y", "x").drop("z")
+    else:
+        return result.transpose(..., "x", "y").drop("z")
