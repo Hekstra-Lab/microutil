@@ -152,7 +152,14 @@ def individualize(mask, min_distance=10, connectivity=2):
 
 def manual_segmentation(img, mask=None):
     """
-    Open up Napari
+    Open up Napari set up for manual segmentation. Adds these custom keybindings:
+    q : erase
+    w : fill
+    e : paint
+    r : pick
+    t : create new label
+
+    also sets it so scrolling in paint mode will modifying brush size.
 
     Parameters
     ----------

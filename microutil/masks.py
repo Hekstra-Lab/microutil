@@ -1,11 +1,21 @@
-__all__ = ["roi_to_mask", "process_oval"]
+__all__ = [
+    "roi_to_mask",
+    "process_oval",
+]
 from read_roi import read_roi_zip
 from skimage import draw
 
 
 def process_oval(info, arr):
     """
-    warning - this will modify arr in place
+    Draw an oval onto *arr* based on the information in *info*.
+    This will modify arr in place
+
+    Parameters
+    ----------
+    info : dict
+        Should have keys *width*, *height*, *left*, *top*
+    arr : (M, N) array-like
     """
     r_radius = info["width"] / 2
     c_radius = info["height"] / 2
@@ -17,6 +27,8 @@ def process_oval(info, arr):
 
 def roi_to_mask(roi, shape):
     """
+    Convert a micromanager roi to a numpy mask.
+
     Parameters
     ----------
     roi : str or dict

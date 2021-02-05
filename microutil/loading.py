@@ -10,12 +10,12 @@ __all__ = [
 
 def load_image_sequence(filenames, z_centered=True, pattern=None):
     """
-    Load an image sequence micromanager .ome.tif files.
+    Load an image sequence from micromanager .ome.tif files.
     Loads as zarr into dask into xarray
 
     Parameters
     ----------
-    filesnames : str
+    filenames : str
         The path/regex that indentifies the file names.
     z_centered : bool, default: True
         Whether to offset
