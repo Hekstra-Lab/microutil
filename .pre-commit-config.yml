@@ -1,0 +1,16 @@
+# this was taken nearly verbatim from https://github.com/napari/napari/blob/master/.pre-commit-config.yaml
+repos:
+-   repo: https://github.com/pycqa/isort
+    rev: 5.7.0
+    hooks:
+    - id: isort
+-   repo: https://github.com/python/black
+    rev: 20.8b1
+    hooks:
+    - id: black
+      pass_filenames: true
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.8.4
+    hooks:
+    - id: flake8
+      pass_filenames: true

@@ -76,7 +76,7 @@ def squash_zstack(data, squash_fn="max", bf_name="BF", channel_name="channel", t
     best_bf = bf.isel(z=best_slices)
 
     result = xr.concat((best_bf, fluo_out), dim=channel_name)
-    
+
     if transpose:
         return result.transpose(..., "y", "x").drop("z")
     else:
