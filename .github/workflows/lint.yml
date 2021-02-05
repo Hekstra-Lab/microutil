@@ -16,7 +16,7 @@ jobs:
         with:
           black_args: ". --check --line-length=100"
       - name: docstrings
-        run:
+        run: |
           pip install flit
           pushd $(mktemp -d)
           git clone https://github.com/Carreau/velin.git --single-branch --depth 1
