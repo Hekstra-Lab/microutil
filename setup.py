@@ -25,11 +25,21 @@ setup_args = dict(
         "matplotlib>=3.3",
         "numpy",
         "pandas",
-        "dask",
+        "dask[array]",
+        "scikit-image",
         "xarray",
         "tifffile",
         "read_roi",
     ],
+    extras_require={
+        "all": [
+            "napari",
+            "tensorflow",
+        ],
+        "test": [
+            "black",
+        ],
+    },
     author="Ian Hunt-Isaak, John Russell",
     author_email="ianhuntisaak@g.harvard.edu, johnrussell@g.harvard.edu",
     license="BSD 3-Clause",
@@ -42,11 +52,6 @@ setup_args = dict(
         "Programming Language :: Python :: 3",
     ],
     url="https://github.com/Hekstra-Lab/microutil",
-    extras_require={
-        "test": [
-            "black",
-        ],
-    },
 )
 
 if __name__ == "__main__":
