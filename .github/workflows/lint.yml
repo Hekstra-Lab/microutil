@@ -15,3 +15,12 @@ jobs:
       - uses: psf/black@stable
         with:
           black_args: ". --check --line-length=100"
+      - name: docstrings
+        run:
+          pip install flit
+          pushd $(mktemp -d)
+          git clone https://github.com/Carreau/velin.git --single-branch --depth 1
+          cd velin
+          flit install
+          popd
+          velin . --check
