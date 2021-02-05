@@ -12,14 +12,25 @@ __all__ = [
 # on macOS big sur napari only works on  python 3.9.0
 # So two envs are needed for mac users (e.g. indrani)
 # this allows importing this file from either env.
+import warnings
+
 try:
     from ._unet import unet
 except ImportError:
     unet = None
+    warnings.warn(
+        "Could not import our unet model. You likely do not have"
+        "Tensorflow installed. The function apply_unet will fail if you call it",
+        stacklevel=3,
+    )
 try:
     import napari
 except ImportError:
-    pass
+    napari = None
+    warnings.warn(
+        "Could not import napari. The function *manual_segmentation* will fail if you call it",
+        stacklevel=3,
+    )
 
 import numpy as np
 import xarray as xr
@@ -48,6 +59,8 @@ def apply_unet(data, model):
     mask : array-like
         The predicted mask
     """
+    if unet is None:
+        raise ImportError("You must install Tensorflow in order to use this function.")
     is_xarr = False
     if isinstance(data, xr.DataArray):
         arr = data.values
@@ -173,6 +186,8 @@ def manual_segmentation(img, mask=None):
     mask :
         The mask that was updated by user interactions
     """
+    if napari is None:
+        raise ImportError("You must install Napari in order to use this function.")
     if mask is None:
         # needs to be numpy as all other options do not seem to work
         # see https://github.com/napari/napari/issues/2190
