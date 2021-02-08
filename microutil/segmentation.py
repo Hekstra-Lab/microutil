@@ -150,7 +150,7 @@ def individualize(mask, min_distance=10, connectivity=2, min_area=25):
         next_cell_id = 1
         # TODO: figure out how to return these areas as well
         # seems tricky, probably won't.... - Ian 2021-02-08
-        ids, areas = np.unique(frame, return_counts = True)
+        ids, areas = np.unique(frame, return_counts=True)
         areas[1:] > min_area
         for i, area in zip(ids[1:], areas[1:]):
             if area > min_area:
@@ -169,12 +169,11 @@ def individualize(mask, min_distance=10, connectivity=2, min_area=25):
 
         m_lab = label(peak_mask)
 
-        mask =  watershed(topology, m_lab, mask=mask, connectivity=2)
+        mask = watershed(topology, m_lab, mask=mask, connectivity=2)
         if min_area is None:
             return mask
         else:
             return _cleanup(mask)
-
 
     return xr.apply_ufunc(
         _individualize,
