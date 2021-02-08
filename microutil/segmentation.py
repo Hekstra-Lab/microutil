@@ -75,8 +75,8 @@ def apply_unet(data, model):
     row_add = 16 - orig_shape[-2] % 16
     col_add = 16 - orig_shape[-1] % 16
     npad = [(0, 0)] * arr.ndim
-    npad[-1] = (0, row_add)
-    npad[-2] = (0, col_add)
+    npad[-2] = (0, row_add)
+    npad[-1] = (0, col_add)
 
     arr = np.pad(arr, npad)
 
