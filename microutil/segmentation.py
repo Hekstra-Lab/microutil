@@ -123,7 +123,7 @@ def threshold_predictions(predictions, threshold=None):
     return predictions > threshold
 
 
-def individualize(mask, min_distance=10, connectivity=2):
+def individualize(mask, min_distance=10, connectivity=2, min_area=25):
     """
     Turn a boolean mask into a a mask of cell ids
 
@@ -135,12 +135,29 @@ def individualize(mask, min_distance=10, connectivity=2):
         Passed through to scipy.ndimage.morphology.distance_transform_edt
     connectivity : int, default: 2
         Passed through to skimage.segmentation.watershed
+    min_area : number, default: 25
+        The minimum number of pixels for an object to be considered a cell.
+        If *None* then no cuttoff will be applied, which can reduce computation time.
 
     Returns
     -------
     cell_ids : array-like of int
         The mask is now 0 for backgroud and integers for cell ids
     """
+
+    def _cleanup(frame):
+        out = np.zeros_like(frame)
+        next_cell_id = 1
+        # TODO: figure out how to return these areas as well
+        # seems tricky, probably won't.... - Ian 2021-02-08
+        ids, areas = np.unique(frame, return_counts = True)
+        areas[1:] > min_area
+        for i, area in zip(ids[1:], areas[1:]):
+            if area > min_area:
+                idx = frame == i
+                out[idx] = next_cell_id
+                next_cell_id += 1
+        return out
 
     def _individualize(mask):
         dtr = ndi.morphology.distance_transform_edt(mask)
@@ -151,7 +168,13 @@ def individualize(mask, min_distance=10, connectivity=2):
         peak_mask[tuple(peak_idx.T)] = True
 
         m_lab = label(peak_mask)
-        return watershed(topology, m_lab, mask=mask, connectivity=2)
+
+        mask =  watershed(topology, m_lab, mask=mask, connectivity=2)
+        if min_area is None:
+            return mask
+        else:
+            return _cleanup(mask)
+
 
     return xr.apply_ufunc(
         _individualize,
