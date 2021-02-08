@@ -6,6 +6,7 @@ __all__ = [
 import scipy
 from scipy import ndimage as ndi
 from scipy.optimize import linear_sum_assignment
+import numpy as np
 
 
 def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5]):
@@ -30,14 +31,14 @@ def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5]):
     return C
 
 
-def track(cells):
+def track(cells, weights=[1, 1, 1 / 5]):
     """
     Attempt to keep cells' labels the same over time points.
 
     Parameters
     ----------
     cells : (T, M, N) array-like
-       The mask of cell labels. Should be integers.
+        The mask of cell labels. Should be integers.
     weights : (3,) array-like, default: [1, 1, 1/5]
         The weighting of features to use for the minkowski distance.
         The current order is [X, Y, area]
@@ -56,7 +57,7 @@ def track(cells):
     # TODO: double and flip the graph to allow for lineage tracking
     # https://www.hpl.hp.com/techreports/2012/HPL-2012-40R1.pdf
     for t in range(1, len(cells)):
-        C = construct_cost_matrix(tracked[t - 1], cells[t])
+        C = construct_cost_matrix(tracked[t - 1], cells[t], weights=weights)
         M, N = C.shape
         if M < N:
             # maybe these should be low cost connections?
