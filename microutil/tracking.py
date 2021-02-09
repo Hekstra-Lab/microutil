@@ -1,5 +1,6 @@
 __all__ = [
     "construct_cost_matrix",
+    "frame_to_features",
     "track",
 ]
 
@@ -7,6 +8,30 @@ import scipy
 from scipy import ndimage as ndi
 from scipy.optimize import linear_sum_assignment
 import numpy as np
+from .track_utils import reindex_labels_return
+
+
+def _normalize(arr):
+    mean = np.nanmean(arr, axis=0, keepdims=True)
+    std = np.nanstd(arr, axis=0, keepdims=True)
+    return (arr - mean) / std
+
+
+def frame_to_features(frame):
+    """
+    Parameters
+    ----------
+    frame : (X, Y) array-like
+        The mask of labels to create features from
+
+    Returns
+    -------
+    features : (N, 3)
+        The features array of (com_x, com_y, area)
+    """
+    indexed_frame, labels, areas = reindex_labels_return(frame)
+    com = np.asarray(ndi.center_of_mass(indexed_frame, indexed_frame, labels[1:]))
+    return _normalize(np.hstack([com, areas[1:, None]]))
 
 
 def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4):
@@ -30,20 +55,16 @@ def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4):
     M : int
         The number of cells in the previous time point.
     """
-    prev_com = np.asarray(ndi.center_of_mass(prev, prev, np.unique(prev)[1:]))
-    curr_com = np.asarray(ndi.center_of_mass(curr, curr, np.unique(curr)[1:]))
-    prev_area = np.unique(prev, return_counts=True)[1][1:]
-    curr_area = np.unique(curr, return_counts=True)[1][1:]
-
-    def _normalize(arr):
-        mean = np.nanmean(arr, axis=0, keepdims=True)
-        std = np.nanstd(arr, axis=0, keepdims=True)
-        return (arr - mean) / std
-
-    prev_features = _normalize(np.hstack([prev_com, prev_area[:, None]]))
-    curr_features = _normalize(np.hstack([curr_com, curr_area[:, None]]))
+    prev_features = frame_to_features(prev)
+    curr_features = frame_to_features(curr)
 
     C = scipy.spatial.distance.cdist(prev_features, curr_features, metric="minkowski", w=weights)
+    # dists = scipy.spatial.distance.cdist(prev_features[:,:2], curr_features[:,:2])
+    # C[dists>200] = 1e9
+    if np.any(np.isnan(C)):
+        print(prev_features)
+        print(curr_features)
+        print(C)
     M, N = C.shape
     if pad is not None:
         if M < N:
@@ -51,11 +72,14 @@ def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4):
             row_pad = N - M
             C = np.pad(C, ((0, row_pad), (0, 0)), constant_values=pad)
             C[-row_pad:, N:]
+        elif M > N:
+            print('oh boi!')
+            print(M, N)
         return C, M
     return C, M
 
 
-def track(cells, weights=[1, 1, 1 / 5]):
+def track(cells, weights=[1, 1, 1 / 5], pad=1e4):
     """
     Attempt to keep cells' labels the same over time points.
 
@@ -66,6 +90,9 @@ def track(cells, weights=[1, 1, 1 / 5]):
     weights : (3,) array-like, default: [1, 1, 1/5]
         The weighting of features to use for the minkowski distance.
         The current order is [X, Y, area]
+    pad : number or None, default: 1e4
+        The value to use when padding the cost matrix to be square. Set to *None*
+        to not pad.
 
     Returns
     -------
@@ -88,7 +115,7 @@ def track(cells, weights=[1, 1, 1 / 5]):
         for i in range(len(assignments)):
             prev, curr = assignments[i]
             idx = cells[t] == curr + 1
-            if i > M:
+            if i >= M:
                 tracked[t][idx] = curr + 1
             else:
                 tracked[t][idx] = prev + 1
