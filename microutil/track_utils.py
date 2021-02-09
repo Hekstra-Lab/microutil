@@ -7,6 +7,7 @@ __all__ = [
 import numpy as np
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
+from .napari_wrappers import manual_segmentation
 
 
 def _reindex_labels(ids, areas, frame, min_area):
@@ -115,7 +116,7 @@ def check_cell_numbers(BF, mask, check_after=True, correct=True, bad_frames=None
 
     def _check(arr):
         for i in range(len(arr)):
-            mask[i] = mu.track_utils.reindex_labels(arr[i], min_area=min_area)
+            mask[i] = reindex_labels(arr[i], min_area=min_area)
         bad_frames = []
         for i in range(1, len(mask)):
             prev_N = len(np.unique(mask[i - 1]))
@@ -134,7 +135,7 @@ def check_cell_numbers(BF, mask, check_after=True, correct=True, bad_frames=None
 
     if correct:
         for i in bad_frames:
-            fixed = mu.manual_segmentation(BF[i - 1 : i + 1], mask[i - 1 : i + 1])
+            fixed = manual_segmentation(BF[i - 1 : i + 1], mask[i - 1 : i + 1])
             mask[i - 1 : i + 1] = fixed
     else:
         return _empty_check(bad_frames)
