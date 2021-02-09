@@ -146,7 +146,6 @@ def individualize(mask, min_distance=10, connectivity=2, min_area=25):
         The mask is now 0 for backgroud and integers for cell ids
     """
 
-
     def _individualize(mask):
         dtr = ndi.morphology.distance_transform_edt(mask)
         topology = -dtr
