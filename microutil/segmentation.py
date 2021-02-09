@@ -41,6 +41,7 @@ from skimage.filters import threshold_isodata
 from skimage.feature import peak_local_max
 from skimage.morphology import label
 from skimage.segmentation import watershed
+from .track_utils import reindex_labels
 
 
 def apply_unet(data, model):
@@ -145,19 +146,6 @@ def individualize(mask, min_distance=10, connectivity=2, min_area=25):
         The mask is now 0 for backgroud and integers for cell ids
     """
 
-    def _cleanup(frame):
-        out = np.zeros_like(frame)
-        next_cell_id = 1
-        # TODO: figure out how to return these areas as well
-        # seems tricky, probably won't.... - Ian 2021-02-08
-        ids, areas = np.unique(frame, return_counts=True)
-        areas[1:] > min_area
-        for i, area in zip(ids[1:], areas[1:]):
-            if area > min_area:
-                idx = frame == i
-                out[idx] = next_cell_id
-                next_cell_id += 1
-        return out
 
     def _individualize(mask):
         dtr = ndi.morphology.distance_transform_edt(mask)
@@ -173,7 +161,7 @@ def individualize(mask, min_distance=10, connectivity=2, min_area=25):
         if min_area is None:
             return mask
         else:
-            return _cleanup(mask)
+            return reindex_labels(mask, min_area)
 
     return xr.apply_ufunc(
         _individualize,
