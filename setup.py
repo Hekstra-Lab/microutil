@@ -38,6 +38,7 @@ setup_args = dict(
         ],
         "test": [
             "black",
+            "pytest",
         ],
     },
     author="Ian Hunt-Isaak, John Russell",
