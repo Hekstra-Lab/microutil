@@ -21,10 +21,28 @@ def lstsq_slope_dropna(y, logR_array):
 
 def compute_power_spectrum(xarr, r_bins=100):
     """
-    Compute the radially-binned power spectrum of an image. Assumes xarr has dimensions
-    (FOV, Time, z, x, y), essentially different z stacks of BF images.
-    Only x and y are explicity acted upon.
+    Compute the radially-binned power spectrum of individual images. Intended use case if
+    for xarr to be a set of z stacks of brightfield images. 
+
+    Parameters
+    ----------
+    xarr : xarray.DataArray (..., x, y)
+    DataArray backed by dask arrays. If the DataArray does not have named dimensions
+    "x" and "y" assume that the last two dimensions correspond to image dimensions.
+
+    r_bins : int
+    Number of bins to use for radial histogram. Default 100.
+
+    Returns
+    -------
+    log_power_spectrum : (..., r_bins)
+    Log power spectrum of each individiual image in xarr.
+
     """
+    
+    if not isinstance(xarr, xr.DataArray) and not isinstance(xarr.data, dask.core.Array):
+       raise TypeError("Can only compute power spectra for xarray.DataArrays backed by dask arrays.")
+
     fft_mags = xr.DataArray(
         da.fft.fftshift(da.absolute(da.fft.fft2(xarr.data)) ** 2),
         dims=xarr.dims,
@@ -34,7 +52,7 @@ def compute_power_spectrum(xarr, r_bins=100):
     fft_mags.coords["y"] = np.arange(fft_mags.y.shape[0]) - fft_mags.y.shape[0] / 2
     logR = 0.5 * xr.ufuncs.log1p(fft_mags.coords["x"] ** 2 + fft_mags.coords["y"] ** 2)
     log_power_spectra = xr.ufuncs.log1p(
-        fft_mags.groupby_bins(logR, bins=100).mean(dim="stacked_x_y")
+        fft_mags.groupby_bins(logR, bins=r_bins).mean(dim="stacked_x_y")
     )
     log_power_spectra["group_bins"] = pd.IntervalIndex(
         log_power_spectra.group_bins.values
@@ -55,6 +73,9 @@ def xarray_plls(y, logR_array):
         dask="parallelized",
         dask_gufunc_kwargs={"allow_rechunk": True},
     )
+
+#def numpy_plls(y, logR_array):
+    
 
 
 def squash_zstack(data, squash_fn="max", bf_name="BF", channel_name="channel", transpose=True):
