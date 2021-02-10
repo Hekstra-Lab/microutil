@@ -2,44 +2,42 @@
 This function in this file is taken  based on and/or taken from https://github.com/lpbsscientist/YeaZ-GUI
 which is under the MIT license.
 """
-
-import os
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
-# Import tensorflow differently depending on version
-from tensorflow import __version__ as tf_version
-
-tf_version_old = int(tf_version[0]) <= 1
-
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import (
-    Input,
-    Conv2D,
-    MaxPooling2D,
-    Dropout,
-    concatenate,
-    UpSampling2D,
-)
-from tensorflow.keras.optimizers import Adam
-
-# from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
-
-if tf_version_old:
-    from tensorflow import ConfigProto
-    from tensorflow import InteractiveSession
-
-else:
-    from tensorflow.compat.v1 import ConfigProto
-    from tensorflow.compat.v1 import InteractiveSession
-
-
-config = ConfigProto()
-config.gpu_options.allow_growth = True
-session = InteractiveSession(config=config)
-
-
 def unet(pretrained_weights=None, input_size=(256, 256, 1)):
+    import os
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+    # Import tensorflow differently depending on version
+    from tensorflow import __version__ as tf_version
+
+    tf_version_old = int(tf_version[0]) <= 1
+
+    from tensorflow.keras.models import Model
+    from tensorflow.keras.layers import (
+        Input,
+        Conv2D,
+        MaxPooling2D,
+        Dropout,
+        concatenate,
+        UpSampling2D,
+    )
+    from tensorflow.keras.optimizers import Adam
+
+    # from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
+
+    if tf_version_old:
+        from tensorflow import ConfigProto
+        from tensorflow import InteractiveSession
+
+    else:
+        from tensorflow.compat.v1 import ConfigProto
+        from tensorflow.compat.v1 import InteractiveSession
+
+
+    config = ConfigProto()
+    config.gpu_options.allow_growth = True
+    session = InteractiveSession(config=config)
+
     inputs = Input(input_size)
     conv1 = Conv2D(64, 3, activation="relu", padding="same", kernel_initializer="he_normal")(inputs)
     conv1 = Conv2D(64, 3, activation="relu", padding="same", kernel_initializer="he_normal")(conv1)
