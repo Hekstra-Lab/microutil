@@ -35,6 +35,8 @@ def _reindex_labels(arr, min_area, inplace=None):
         if inplace is not None:
             inplace[:] = out
         return out, np.array(new_ids), np.array(new_areas)
+    elif inplace is not None:
+        inplace[:] = arr
     return arr, ids, areas
 
 
@@ -129,13 +131,13 @@ def reindex(arr, min_area=None, inplace=True, time_axis="infer", pos_axis="infer
                 # it may actually be harmful in the case of a cell leaving
                 _reindex_labels(frames[t], min_area, modified[t])
         else:
-            _reindex_labels(arr, min_area, modified)
+            _reindex_labels(arr, min_area, modified[:])
 
     if pos_axis is not None:
         for p in range(arr.shape[pos_axis]):
             _process_times(arr[:, p], modified[:, p])
     else:
-        _process_times(arr, modified)
+        _process_times(arr, modified[:])
     return modified
 
 

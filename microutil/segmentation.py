@@ -141,7 +141,7 @@ def individualize(mask, min_distance=10, connectivity=2, min_area=25):
         if min_area is None:
             return mask
         else:
-            return _reindex_labels(mask, min_area, inplace=False)[0]
+            return _reindex_labels(mask, min_area, inplace=None)[0]
 
     return xr.apply_ufunc(
         _individualize,
