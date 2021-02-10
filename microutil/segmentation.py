@@ -1,6 +1,5 @@
 __all__ = [
     "apply_unet",
-    "unet",
     "threshold_predictions",
     "individualize",
 ]
@@ -13,15 +12,6 @@ __all__ = [
 # this allows importing this file from either env.
 import warnings
 
-try:
-    from ._unet import unet
-except ImportError:
-    unet = None
-    warnings.warn(
-        "Could not import our unet model. You likely do not have"
-        "Tensorflow installed. The function apply_unet will fail if you call it",
-        stacklevel=3,
-    )
 
 import numpy as np
 import xarray as xr
@@ -32,7 +22,7 @@ from skimage.filters import threshold_isodata
 from skimage.feature import peak_local_max
 from skimage.morphology import label
 from skimage.segmentation import watershed
-from .track_utils import reindex_labels
+from .track_utils import _reindex_labels
 
 
 def apply_unet(data, model):
@@ -51,8 +41,8 @@ def apply_unet(data, model):
     mask : array-like
         The predicted mask
     """
-    if unet is None:
-        raise ImportError("You must install Tensorflow in order to use this function.")
+    from ._unet import unet
+
     is_xarr = False
     if isinstance(data, xr.DataArray):
         arr = data.values
@@ -151,7 +141,7 @@ def individualize(mask, min_distance=10, connectivity=2, min_area=25):
         if min_area is None:
             return mask
         else:
-            return reindex_labels(mask, min_area)
+            return _reindex_labels(mask, min_area, inplace=False)[0]
 
     return xr.apply_ufunc(
         _individualize,

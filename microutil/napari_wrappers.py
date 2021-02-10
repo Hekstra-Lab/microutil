@@ -24,7 +24,10 @@ def manual_segmentation(img, mask=None):
     r : pick
     t : create new label
 
-    also sets it so scrolling in paint mode will modifying brush size.
+    s : fill with background
+
+    scroll : modify brush size when in paint mode
+    shift + Scroll : scrub through time points
 
     Parameters
     ----------
@@ -69,6 +72,11 @@ def manual_segmentation(img, mask=None):
         def paint_mode(viewer):
             labels.mode = "fill"
 
+        @labels.bind_key("s")
+        def paint_mode(viewer):
+            labels.selected_label = 0
+            labels.mode = "fill"
+
         @labels.bind_key("e")
         def paint_mode(viewer):
             labels.mode = "paint"
@@ -82,14 +90,25 @@ def manual_segmentation(img, mask=None):
             labels.selected_label = labels.data.max() + 1
 
         # scrolling in paint mode changes the brush size
-        def brush_size_callback(layer, event):
-            if labels.mode in ["paint", "erase"]:
+        # shift-scroll changes the time point
+        def scroll_callback(layer, event):
+            if 'Shift' in event.modifiers:
+                new = list(viewer.dims.current_step)
+                if event.delta[1] > 0:
+                    if new[0] < mask.shape[0] - 1:
+                        new[0] += 1
+                else:
+                    if new[0] > 0:
+                        new[0] -= 1
+                viewer.dims.current_step = new
+
+            elif labels.mode in ["paint", "erase"]:
                 if event.delta[1] > 0:
                     labels.brush_size += 1
                 else:
                     labels.brush_size = max(labels.brush_size - 1, 1)
 
-        labels.mouse_wheel_callbacks.append(brush_size_callback)
+        labels.mouse_wheel_callbacks.append(scroll_callback)
 
     if isinstance(img, xr.DataArray):
         return xr.DataArray(labels.data, coords=img.coords, dims=img.dims)

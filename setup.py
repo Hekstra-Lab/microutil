@@ -30,6 +30,8 @@ setup_args = dict(
         "xarray",
         "tifffile",
         "read_roi",
+        "ipywidgets",
+        "zarr",
     ],
     extras_require={
         "all": [
@@ -38,6 +40,7 @@ setup_args = dict(
         ],
         "test": [
             "black",
+            "pytest",
         ],
     },
     author="Ian Hunt-Isaak, John Russell",

@@ -8,13 +8,16 @@ import scipy
 from scipy import ndimage as ndi
 from scipy.optimize import linear_sum_assignment
 import numpy as np
-from .track_utils import reindex_labels_return
+from .track_utils import _reindex_labels, reindex
 
 
-def _normalize(arr):
-    mean = np.nanmean(arr, axis=0, keepdims=True)
-    std = np.nanstd(arr, axis=0, keepdims=True)
-    return (arr - mean) / std
+def norm(prev, curr):
+    for col in range(3):
+        r = np.hstack([prev[:, col], curr[:, col]])
+        m = np.mean(r)
+        s = np.std(r)
+        prev[:, col] = (prev[:, col] - m) / s
+        curr[:, col] = (curr[:, col] - m) / s
 
 
 def frame_to_features(frame):
@@ -29,9 +32,9 @@ def frame_to_features(frame):
     features : (N, 3)
         The features array of (com_x, com_y, area)
     """
-    indexed_frame, labels, areas = reindex_labels_return(frame)
+    indexed_frame, labels, areas = _reindex_labels(frame, None)
     com = np.asarray(ndi.center_of_mass(indexed_frame, indexed_frame, labels[1:]))
-    return _normalize(np.hstack([com, areas[1:, None]]))
+    return np.hstack([com, areas[1:, None]])
 
 
 def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4):
@@ -57,10 +60,9 @@ def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4):
     """
     prev_features = frame_to_features(prev)
     curr_features = frame_to_features(curr)
+    norm(prev_features, curr_features)
 
     C = scipy.spatial.distance.cdist(prev_features, curr_features, metric="minkowski", w=weights)
-    # dists = scipy.spatial.distance.cdist(prev_features[:,:2], curr_features[:,:2])
-    # C[dists>200] = 1e9
     if np.any(np.isnan(C)):
         print(prev_features)
         print(curr_features)
@@ -71,7 +73,6 @@ def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4):
             # maybe these should be low cost connections?
             row_pad = N - M
             C = np.pad(C, ((0, row_pad), (0, 0)), constant_values=pad)
-            C[-row_pad:, N:]
         elif M > N:
             print('oh boi!')
             print(M, N)
@@ -100,23 +101,26 @@ def track(cells, weights=[1, 1, 1 / 5], pad=1e4):
         The labels mask with cells tracked through time. So ideally
         a cell labelled 4 at t0 will also be labelled 4 at t1.
     """
-    tracked = np.zeros_like(cells)
-    tracked[0] = cells[0]
+    # Ineffecient to call _reindex_labels multiple times
+    # but currently just trying to get it working so not going to restructure
+    # plus unique is pretty performant so the hit isn't so big
+    # we can't keep the areas from this because they are not per time point
+    arr = reindex(cells, inplace=False)
+    tracked = np.zeros_like(arr)
+    tracked[0] = arr[0]
 
     # for loop for now.
     # xarray rolling operations look promising, but I couldn't get them working.
     # TODO: double and flip the graph to allow for lineage tracking
     # https://www.hpl.hp.com/techreports/2012/HPL-2012-40R1.pdf
+
     for t in range(1, len(cells)):
-        C, M = construct_cost_matrix(tracked[t - 1], cells[t], weights=weights)
+        C, M = construct_cost_matrix(tracked[t - 1], arr[t], weights=weights)
         row_ind, col_ind = linear_sum_assignment(C)
         assignments = np.stack([row_ind, col_ind], axis=1)
 
         for i in range(len(assignments)):
             prev, curr = assignments[i]
-            idx = cells[t] == curr + 1
-            if i >= M:
-                tracked[t][idx] = curr + 1
-            else:
-                tracked[t][idx] = prev + 1
+            idx = arr[t] == curr + 1
+            tracked[t][idx] = prev + 1
     return tracked
