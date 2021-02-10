@@ -5,6 +5,7 @@ __all__ = [
     "find_duplicate_labels",
 ]
 import numpy as np
+import xarray as xr
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 from .napari_wrappers import manual_segmentation
@@ -78,12 +79,13 @@ def check_cell_numbers(BF, mask, check_after=True, correct=True, bad_frames=None
     check if the number of cells ever decreases from one frame to the next. If there is a decrease
     and *correct* is True then open napari to allow for manual correction.
     WARNING: currently only allows for a time dimesion. Will need updating for more complex indexing
+    This requires that time is the first dimension and XY as the final two dimensions.
 
     Parameters
     ----------
-    BF : (..., X, Y) array
-        The BF images to use as background
-    mask : (..., X, Y) array
+    BF : (T, ..., X, Y) array
+        The BF images to use as background.
+    mask : (T, ..., X, Y) array
     check_after : bool, default: True
         Whether to run the checking code after the manual updates.
     correct : bool, default: True
@@ -107,36 +109,39 @@ def check_cell_numbers(BF, mask, check_after=True, correct=True, bad_frames=None
         bad_frames = check_cell_numbers(BF, tracked)
 
     """
-    if mask.ndim != 3:
-        raise ValueError(
-            "Not yet supported - If you run into this error"
-            "then it is time to start supporting this"
-            "tell Ian to get it together and make it happen..."
-        )
+    time_axis = 0
+    N_time = mask.shape[time_axis]
 
     def _check(arr):
-        for i in range(len(arr)):
+        for i in np.ndindex(arr.shape[:-2]):
             mask[i] = reindex_labels(arr[i], min_area=min_area)
         bad_frames = []
-        for i in range(1, len(mask)):
-            prev_N = len(np.unique(mask[i - 1]))
-            curr_N = len(np.unique(mask[i]))
-            if prev_N > curr_N:
-                print(i, prev_N, curr_N)
-                bad_frames.append(i)
+        for i in range(1, N_time):
+            prev = arr[i - 1]
+            curr = arr[i]
+            for j in np.ndindex(prev.shape[:-2]):
+                prev_N = len(np.unique(prev[j]))
+                curr_N = len(np.unique(curr[j]))
+                if prev_N > curr_N:
+                    print(i, j, prev_N, curr_N)
+                    bad_frames.append((i, j))
         return bad_frames
 
     def _empty_check(l):
         if len(l) == 0:
             return None
+        else:
+            return l
 
     if bad_frames is None:
         bad_frames = _check(mask)
 
     if correct:
-        for i in bad_frames:
-            fixed = manual_segmentation(BF[i - 1 : i + 1], mask[i - 1 : i + 1])
-            mask[i - 1 : i + 1] = fixed
+        for i, j in bad_frames:
+            frame_BF = BF[[i - 1, i], list(j)]
+            frame_mask = mask[[i - 1, i], list(j)]
+            fixed = manual_segmentation(frame_BF, frame_mask)
+            mask[[i - 1, i], list(j)] = fixed
     else:
         return _empty_check(bad_frames)
 
