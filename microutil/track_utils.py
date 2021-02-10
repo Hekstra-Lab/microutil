@@ -179,7 +179,7 @@ def check_cell_numbers(BF, mask, check_after=True, correct=True, bad_frames=None
 
     def _check(arr):
         for i in np.ndindex(arr.shape[:-2]):
-            mask[i] = reindex_labels(arr[i], min_area=min_area)
+            mask[i] = reindex(arr[i], min_area=min_area)
         bad_frames = []
         for i in range(1, N_time):
             prev = arr[i - 1]
