@@ -8,7 +8,7 @@ import scipy
 from scipy import ndimage as ndi
 from scipy.optimize import linear_sum_assignment
 import numpy as np
-from .track_utils import reindex_labels_return
+from .track_utils import _reindex_labels
 
 
 def _normalize(arr):
@@ -29,7 +29,7 @@ def frame_to_features(frame):
     features : (N, 3)
         The features array of (com_x, com_y, area)
     """
-    indexed_frame, labels, areas = reindex_labels_return(frame)
+    indexed_frame, labels, areas = _reindex_labels(frame)
     com = np.asarray(ndi.center_of_mass(indexed_frame, indexed_frame, labels[1:]))
     return _normalize(np.hstack([com, areas[1:, None]]))
 
