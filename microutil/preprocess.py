@@ -13,20 +13,20 @@ __all__ = [
 
 def lstsq_slope_dropna(log_power_spec, logR):
     """
-        Compute the slope of a linear fit between a log power specrum and the log
-        of the frequency components. This function is mapped over the
-        x and y dimensions of an xarray with xarray_plls.
+    Compute the slope of a linear fit between a log power specrum and the log
+    of the frequency components. This function is mapped over the
+    x and y dimensions of an xarray with xarray_plls.
 
-        Parameters
-        ----------
-        log_power_spec : array-like (N,)
+    Parameters
+    ----------
+    log_power_spec : array-like (N,)
         Log power spectrum values. Dependent variable for the regression.
     logR : array-like (N,)
         Log frequency components. Independent variable for regression.
 
-        Returns
-        -------
-        slope : np.ndarray (1,)
+    Returns
+    -------
+    slope : np.ndarray (1,)
         Coeffiecent from linear fit.
     """
     # I dont know why there are nans in the groupby but there are nans
@@ -44,16 +44,15 @@ def compute_power_spectrum(xarr, r_bins=100):
     Parameters
     ----------
     xarr : xarray.DataArray (..., x, y)
-    DataArray backed by dask arrays. If the DataArray does not have named dimensions
-    "x" and "y" assume that the last two dimensions correspond to image dimensions.
-
+        DataArray backed by dask arrays. If the DataArray does not have named dimensions
+        "x" and "y" assume that the last two dimensions correspond to image dimensions.
     r_bins : int
-    Number of bins to use for radial histogram. Default 100.
+        Number of bins to use for radial histogram. Default 100.
 
     Returns
     -------
     log_power_spectrum : (..., r_bins)
-    Log power spectrum of each individiual image in xarr.
+        Log power spectrum of each individiual image in xarr.
 
     """
 
@@ -89,7 +88,6 @@ def xarray_plls(log_power_spec, logR):
     ----------
     log_power_spec : xarray.DataArray
     Log power spectrum values. Dependent variable for the regression.
-
     logR : xarray.DataArray
     Log frequency components. Should usually be log_power_spec.group_bins.
     Independent variable for regression.
