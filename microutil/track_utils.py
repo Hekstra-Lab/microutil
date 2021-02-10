@@ -43,8 +43,8 @@ def _process_dims(dims, names):
     Check if an xarray's dims contain something that
     is in *names*
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     dims : tuple of str
     names : str or container of str
 

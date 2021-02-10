@@ -30,6 +30,7 @@ def zeros_like(arr):
     elif isinstance(arr, da.Array):
         return da.zeros_like(arr)
 
+
 def not_xr(arr):
     """
     Make sure an array is not an xarray as that can

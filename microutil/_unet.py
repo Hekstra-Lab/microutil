@@ -2,6 +2,8 @@
 This function in this file is taken  based on and/or taken from https://github.com/lpbsscientist/YeaZ-GUI
 which is under the MIT license.
 """
+
+
 def unet(pretrained_weights=None, input_size=(256, 256, 1)):
     import os
 
@@ -32,7 +34,6 @@ def unet(pretrained_weights=None, input_size=(256, 256, 1)):
     else:
         from tensorflow.compat.v1 import ConfigProto
         from tensorflow.compat.v1 import InteractiveSession
-
 
     config = ConfigProto()
     config.gpu_options.allow_growth = True

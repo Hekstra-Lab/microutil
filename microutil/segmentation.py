@@ -42,6 +42,7 @@ def apply_unet(data, model):
         The predicted mask
     """
     from ._unet import unet
+
     is_xarr = False
     if isinstance(data, xr.DataArray):
         arr = data.values
