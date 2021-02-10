@@ -30,6 +30,8 @@ setup_args = dict(
         "xarray",
         "tifffile",
         "read_roi",
+        "ipywidgets",
+        "zarr",
     ],
     extras_require={
         "all": [
