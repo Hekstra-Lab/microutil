@@ -13,21 +13,21 @@ __all__ = [
 
 def lstsq_slope_dropna(log_power_spec, logR):
     """
-    Compute the slope of a linear fit between a log power specrum and the log
-    of the frequency components. This function is mapped over the 
-    x and y dimensions of an xarray with xarray_plls.
+        Compute the slope of a linear fit between a log power specrum and the log
+        of the frequency components. This function is mapped over the
+        x and y dimensions of an xarray with xarray_plls.
 
-    Parameters
-    ----------
-    log_power_spec : array-like (N,) 
-    Log power spectrum values. Dependent variable for the regression.
-logR : array-like (N,)
-    Log frequency components. Independent variable for regression.
+        Parameters
+        ----------
+        log_power_spec : array-like (N,)
+        Log power spectrum values. Dependent variable for the regression.
+    logR : array-like (N,)
+        Log frequency components. Independent variable for regression.
 
-    Returns
-    -------
-    slope : np.ndarray (1,)
-    Coeffiecent from linear fit.
+        Returns
+        -------
+        slope : np.ndarray (1,)
+        Coeffiecent from linear fit.
     """
     # I dont know why there are nans in the groupby but there are nans
     keep = ~np.isnan(log_power_spec)
@@ -39,7 +39,7 @@ logR : array-like (N,)
 def compute_power_spectrum(xarr, r_bins=100):
     """
     Compute the radially-binned power spectrum of individual images. Intended use case if
-    for xarr to be a set of z stacks of brightfield images. 
+    for xarr to be a set of z stacks of brightfield images.
 
     Parameters
     ----------
@@ -56,9 +56,9 @@ def compute_power_spectrum(xarr, r_bins=100):
     Log power spectrum of each individiual image in xarr.
 
     """
-    
+
     if not isinstance(xarr, xr.DataArray):
-       raise TypeError("Can only compute power spectra for xarray.DataArrays.")
+        raise TypeError("Can only compute power spectra for xarray.DataArrays.")
 
     if not isinstance(xarr.data, da.Array):
         xarr.data = da.array(xarr.data)
@@ -87,7 +87,7 @@ def xarray_plls(log_power_spec, logR):
 
     Parameters
     ----------
-    log_power_spec : xarray.DataArray 
+    log_power_spec : xarray.DataArray
     Log power spectrum values. Dependent variable for the regression.
 
     logR : xarray.DataArray
@@ -112,17 +112,16 @@ def xarray_plls(log_power_spec, logR):
     )
 
 
-
 def squash_zstack(data, squash_fn="max", bf_name="BF", channel_name="channel", transpose=True):
     """
     Use PLLS to select the best BF slice and compress the fluorescent z stacks using squash_fn.
     Valid squash_fn's are 'max' and 'mean'.
     """
-    
-    #If channels are not named, assume data is only BF stacks
+
+    # If channels are not named, assume data is only BF stacks
     if channel_name is None:
         bf = data
-    
+
     else:
         bf = data.sel({channel_name: bf_name})
         fluo = data.sel({channel_name: data[channel_name] != bf_name})
