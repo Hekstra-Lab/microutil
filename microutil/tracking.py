@@ -37,7 +37,7 @@ def frame_to_features(frame):
     return np.hstack([com, areas[1:, None]])
 
 
-def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4):
+def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4, debug_info=''):
     """
     prev : (X, Y) array of int
         The previous time point's labels
@@ -75,7 +75,7 @@ def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4):
             C = np.pad(C, ((0, row_pad), (0, 0)), constant_values=pad)
         elif M > N:
             print('oh boi!')
-            print(M, N)
+            print(debug_info + f' - {M} {N}')
         return C, M
     return C, M
 
@@ -115,7 +115,7 @@ def track(cells, weights=[1, 1, 1 / 5], pad=1e4):
     # https://www.hpl.hp.com/techreports/2012/HPL-2012-40R1.pdf
 
     for t in range(1, len(cells)):
-        C, M = construct_cost_matrix(tracked[t - 1], arr[t], weights=weights)
+        C, M = construct_cost_matrix(tracked[t - 1], arr[t], weights=weights, debug_info=f't={t}')
         row_ind, col_ind = linear_sum_assignment(C)
         assignments = np.stack([row_ind, col_ind], axis=1)
 
