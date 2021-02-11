@@ -217,7 +217,7 @@ def check_cell_numbers(BF, mask, check_after=True, correct=True, bad_frames=None
                 frame_BF = BF[[i - 1, i]]
                 frame_mask = mask[[i - 1, i]]
 
-            fixed = manual_segmentation(frame_BF.squeeze(), frame_mask.squeeze())
+            fixed = manual_segmentation(frame_BF, frame_mask)
             if len(j) > 0:
                 mask[[i - 1, i], list(j)] = fixed
             else:
