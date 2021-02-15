@@ -35,7 +35,7 @@ setup_args = dict(
     ],
     extras_require={
         "all": [
-            "napari",
+            "napari[all]",
             "tensorflow",
         ],
         "test": [
