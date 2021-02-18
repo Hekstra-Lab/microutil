@@ -73,7 +73,7 @@ def load_image_sequence(filenames, z_centered=True, pattern=None):
     return arr
 
 
-def read_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z']):
+def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z']):
     """
     Lazily read micromanager generated single frame tiff files.
 
