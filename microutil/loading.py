@@ -79,21 +79,17 @@ def read_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z']):
 
     Parameters
     ----------
-
     data_dir : str or None
         Path to directory containing Pos{i} subdirectories
-
     glob_pattern : str or None
         Glob pattern to match files in a single directory. If None,
         all .tif files will be read
-
     chunkby_dims : list of str default ['C','Z']
         Dimensions to chunk resulting dask array by. X and Y dimensions
         will always be in a single chunk. Can contain any of S, T, C, or Z.
 
     Returns
     -------
-
     arr : xr.DataArray
         Unevaluated dask array containing all the files from the directory.
         Shape will vary but dimensions will always be (S, T, C, Z, Y, X)
