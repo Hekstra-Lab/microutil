@@ -119,8 +119,6 @@ def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z']):
             else:
                 all_files = all_files.append(df)
 
-            all_files[['C', 'T', 'S', 'Z']] = all_files[['C', 'T', 'S', 'Z']].astype(int)
-
     else:
         fseries = pd.Series(sorted(glob.glob(data_dir + glob_pattern)))
         df = pd.DataFrame({'filename': fseries})
@@ -133,31 +131,30 @@ def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z']):
         )
 
         all_files = df
-        all_files[['C', 'T', 'S', 'Z']] = all_files[['C', 'T', 'S', 'Z']].astype(int)
 
-        # if you end early there might not be the same number of frames in each pos
-        # cutoff at the worst case scenario so things can be rectangular
-        cutoffs = all_files.groupby('S').nunique().min().drop('filename')
+    all_files[['C', 'T', 'S', 'Z']] = all_files[['C', 'T', 'S', 'Z']].astype(int)
 
-        use_files = all_files.loc[
-            all_files.apply(lambda x: (x[['C', 'T', 'Z']] < cutoffs).all(), axis=1)
-        ]
+    # if you end early there might not be the same number of frames in each pos
+    # cutoff at the worst case scenario so things can be rectangular
+    cutoffs = all_files.groupby('S').nunique().min().drop('filename')
 
-        group_dims = [x for x in ['S', 'T', 'C', 'Z'] if x not in chunkby_dims]
+    use_files = all_files.loc[
+        all_files.apply(lambda x: (x[['C', 'T', 'Z']] < cutoffs).all(), axis=1)
+    ]
 
-        chunks = np.zeros(use_files[group_dims].nunique().values, dtype='object')
+    group_dims = [x for x in ['S', 'T', 'C', 'Z'] if x not in chunkby_dims]
 
-        for idx, val in use_files.groupby(group_dims):
-            darr = da.from_zarr(tiff.imread(val.filename.tolist(), aszarr=True)).rechunk(-1)
-            shape = tuple(cutoffs[x] for x in chunkby_dims) + darr.shape[-2:]
-            darr = darr.reshape(shape)
-            chunks[idx] = darr
+    chunks = np.zeros(use_files[group_dims].nunique().values, dtype='object')
 
-        chunks = np.expand_dims(chunks, tuple(range(-1, -len(chunkby_dims) - 3, -1)))
+    for idx, val in use_files.groupby(group_dims):
+        darr = da.from_zarr(tiff.imread(val.filename.tolist(), aszarr=True)).rechunk(-1)
+        shape = tuple(cutoffs[x] for x in chunkby_dims) + darr.shape[-2:]
+        darr = darr.reshape(shape)
+        chunks[idx] = darr
 
-        d_data = da.block(chunks.tolist())
-        x_data = xr.DataArray(
-            da.block(chunks.tolist()), dims=group_dims + chunkby_dims + ['Y', 'X']
-        )
+    chunks = np.expand_dims(chunks, tuple(range(-1, -len(chunkby_dims) - 3, -1)))
 
-        return x_data.transpose('S', 'T', 'C', 'Z', 'Y', 'X')
+    d_data = da.block(chunks.tolist())
+    x_data = xr.DataArray(da.block(chunks.tolist()), dims=group_dims + chunkby_dims + ['Y', 'X'])
+
+    return x_data.transpose('S', 'T', 'C', 'Z', 'Y', 'X')
