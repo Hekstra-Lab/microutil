@@ -2,6 +2,11 @@ import tifffile
 import dask.array as da
 import xarray as xr
 import numpy as np
+import pandas as pd
+import dask.array as da
+import os
+import glob
+import re
 
 __all__ = [
     "load_image_sequence",
@@ -147,7 +152,7 @@ def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z']):
     chunks = np.zeros(use_files[group_dims].nunique().values, dtype='object')
 
     for idx, val in use_files.groupby(group_dims):
-        darr = da.from_zarr(tiff.imread(val.filename.tolist(), aszarr=True)).rechunk(-1)
+        darr = da.from_zarr(tifffile.imread(val.filename.tolist(), aszarr=True)).rechunk(-1)
         shape = tuple(cutoffs[x] for x in chunkby_dims) + darr.shape[-2:]
         darr = darr.reshape(shape)
         chunks[idx] = darr
