@@ -118,11 +118,10 @@ def squash_zstack(
     data,
     squash_fn="max",
     bf_name="BF",
-    channel_name="C",
-    x_dim='X',
-    y_dim='Y',
+    channel_dim="C",
     z_dim='Z',
-    transpose=True,
+    y_dim='Y',
+    x_dim='X',
 ):
     """
     Use PLLS to select the best BF slice and compress the fluorescent z stacks using squash_fn.
@@ -130,12 +129,12 @@ def squash_zstack(
     """
 
     # If channels are not named, assume data is only BF stacks
-    if channel_name is None:
+    if channel_dim is None:
         bf = data
 
     else:
-        bf = data.sel({channel_name: bf_name})
-        fluo = data.sel({channel_name: data[channel_name] != bf_name})
+        bf = data.sel({channel_dim: bf_name})
+        fluo = data.sel({channel_dim: data[channel_dim] != bf_name})
 
         if squash_fn == "max":
             fluo_out = fluo.max(z_dim)
@@ -147,18 +146,13 @@ def squash_zstack(
     best_slices = xarray_plls(power_spec, power_spec.group_bins).load().argmin(z_dim)
     best_bf = bf.isel({z_dim: best_slices})
 
-    if channel_name is None:
+    if channel_dim is None:
         result = best_bf
 
     else:
-        result = xr.concat((best_bf, fluo_out), dim=channel_name)
+        result = xr.concat((best_bf, fluo_out), dim=channel_dim)
 
     if z_dim in result.dims:
         result = result.drop(z_dim)
 
-    # if transpose:
-    #    return result.transpose(..., "y", "x")
-    # else:
-    #    return result.transpose(..., "x", "y")
-
-    return result.transpose(..., channel_name, y_dim, x_dim)
+    return result.transpose(..., channel_dim, y_dim, x_dim)
