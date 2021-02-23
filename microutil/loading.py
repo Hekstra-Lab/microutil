@@ -113,7 +113,7 @@ def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z']):
             df = pd.DataFrame({'filename': fseries})
             df[['C', 'S', 'T', 'Z']] = df.apply(
                 lambda x: re.split(
-                    'img_channel(\d+)_position(\d+)_time(\d+)_z(\d+).tif', x.filename
+                    r'img_channel(\d+)_position(\d+)_time(\d+)_z(\d+).tif', x.filename
                 )[1:-1],
                 axis=1,
                 result_type='expand',
@@ -128,7 +128,7 @@ def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z']):
         fseries = pd.Series(sorted(glob.glob(data_dir + glob_pattern)))
         df = pd.DataFrame({'filename': fseries})
         df[['C', 'S', 'T', 'Z']] = df.apply(
-            lambda x: re.split('img_channel(\d+)_position(\d+)_time(\d+)_z(\d+).tif', x.filename)[
+            lambda x: re.split(r'img_channel(\d+)_position(\d+)_time(\d+)_z(\d+).tif', x.filename)[
                 1:-1
             ],
             axis=1,
