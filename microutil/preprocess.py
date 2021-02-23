@@ -43,7 +43,7 @@ def compute_power_spectrum(xarr, r_bins=100, x_dim='X', y_dim='Y'):
 
     Parameters
     ----------
-    xarr : xarray.DataArray 
+    xarr : xarray.DataArray
         DataArray backed by dask arrays. If the DataArray does not have named dimensions
         "x" and "y" assume that the last two dimensions correspond to image dimensions.
     r_bins : int
@@ -114,7 +114,16 @@ def xarray_plls(log_power_spec, logR):
     )
 
 
-def squash_zstack(data, squash_fn="max", bf_name="BF", channel_name="C", x_dim='X', y_dim='Y', z_dim='Z', transpose=True):
+def squash_zstack(
+    data,
+    squash_fn="max",
+    bf_name="BF",
+    channel_name="C",
+    x_dim='X',
+    y_dim='Y',
+    z_dim='Z',
+    transpose=True,
+):
     """
     Use PLLS to select the best BF slice and compress the fluorescent z stacks using squash_fn.
     Valid squash_fn's are 'max' and 'mean'.
@@ -136,7 +145,7 @@ def squash_zstack(data, squash_fn="max", bf_name="BF", channel_name="C", x_dim='
     # Now do PLLS for Brightfield
     power_spec = compute_power_spectrum(bf, x_dim=x_dim, y_dim=y_dim)
     best_slices = xarray_plls(power_spec, power_spec.group_bins).load().argmin(z_dim)
-    best_bf = bf.isel({z_dim:best_slices})
+    best_bf = bf.isel({z_dim: best_slices})
 
     if channel_name is None:
         result = best_bf
@@ -147,9 +156,9 @@ def squash_zstack(data, squash_fn="max", bf_name="BF", channel_name="C", x_dim='
     if z_dim in result.dims:
         result = result.drop(z_dim)
 
-    #if transpose:
+    # if transpose:
     #    return result.transpose(..., "y", "x")
-    #else:
+    # else:
     #    return result.transpose(..., "x", "y")
 
     return result.transpose(..., channel_name, y_dim, x_dim)

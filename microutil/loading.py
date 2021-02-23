@@ -15,11 +15,12 @@ __all__ = [
     "load_mm_frames",
 ]
 
+
 def micromanager_metadata_to_coords(summary, n_times=None, z_centered=True):
     """
     Given the 'Summary' dict from micromanager, parse the information
     into coords for a corresponding DataArray.
-    
+
     Parameters
     ----------
     summary : dict
@@ -39,7 +40,7 @@ def micromanager_metadata_to_coords(summary, n_times=None, z_centered=True):
     Returns
     -------
     coords : dict
-        
+
     """
     # load axis order but extract the positions from the list
     # also reverse it because that's what we need ¯\_(ツ)_/¯
@@ -47,7 +48,7 @@ def micromanager_metadata_to_coords(summary, n_times=None, z_centered=True):
     ax_order = list(summary["AxisOrder"])
     ax_order.remove("position")
     ax_order = ax_order[::-1]
-    
+
     coords = {}
 
     channel_names = summary["ChNames"]
@@ -56,7 +57,7 @@ def micromanager_metadata_to_coords(summary, n_times=None, z_centered=True):
     z_step = summary["z-step_um"]
     n_slices = summary["Slices"]
     z = np.linspace(0, n_slices * z_step, n_slices)
-    
+
     if z_centered:
         if len(z) % 2 == 0:
             raise ValueError(
@@ -66,13 +67,15 @@ def micromanager_metadata_to_coords(summary, n_times=None, z_centered=True):
 
     coords['Z'] = z
 
-    if n_times is None: n_times = summary["Frames"]
-    
+    if n_times is None:
+        n_times = summary["Frames"]
+
     # Nominal timepoints in ms
     times = np.linspace(0, summary["Interval_ms"] * n_times, n_times)
     coords['T'] = times
 
     return coords
+
 
 def load_image_sequence(filenames, z_centered=True, pattern=None):
     """
@@ -103,16 +106,18 @@ def load_image_sequence(filenames, z_centered=True, pattern=None):
     # load the first file to grab the metadata
     meta = tifffile.TiffFile(t.files[0]).micromanager_metadata
     arr = da.from_zarr(t.aszarr())
-    n_times = arr.shape[1] 
+    n_times = arr.shape[1]
 
-    coords = micromanager_metadata_to_coords(meta['Summary'], n_times=n_times,z_centered=z_centered)
- 
+    coords = micromanager_metadata_to_coords(
+        meta['Summary'], n_times=n_times, z_centered=z_centered
+    )
+
     arr = xr.DataArray(
         arr,
         dims=("S", "T", "C", "Z", "Y", "X"),
         coords=coords,
         attrs={"Summary": meta["Summary"], "Comment": meta["Comments"]["Summary"]},
-        )
+    )
     return arr
 
 
@@ -202,12 +207,13 @@ def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z'], z_cente
     d_data = da.block(chunks.tolist())
 
     x_data = xr.DataArray(da.block(chunks.tolist()), dims=group_dims + chunkby_dims + ['Y', 'X'])
-    
-    with open(position_dirs[0]+"/metadata.txt") as f:
+
+    with open(position_dirs[0] + "/metadata.txt") as f:
         meta = json.load(f)
 
-    coords = micromanager_metadata_to_coords(meta['Summary'], 
-            n_times=x_data['T'].values.shape[0], z_centered=z_centered)
+    coords = micromanager_metadata_to_coords(
+        meta['Summary'], n_times=x_data['T'].values.shape[0], z_centered=z_centered
+    )
 
     x_data = x_data.assign_coords(coords)
 
