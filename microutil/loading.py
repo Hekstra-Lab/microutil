@@ -7,6 +7,7 @@ import dask.array as da
 import os
 import glob
 import re
+import json
 
 __all__ = [
     "micromanager_metadata_to_coords",
@@ -61,7 +62,7 @@ def micromanager_metadata_to_coords(summary, n_times=None, z_centered=True):
             raise ValueError(
                 f"There are an even number of z points ({len(Z)}) so z_centered cannot be True"
             )
-        z -= z[int(len(Z) / 2 - 0.5)]
+        z -= z[int(len(z) / 2 - 0.5)]
 
     coords['Z'] = z
 
@@ -115,7 +116,7 @@ def load_image_sequence(filenames, z_centered=True, pattern=None):
     return arr
 
 
-def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z']):
+def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z'], z_centered=True):
     """
     Lazily read micromanager generated single frame tiff files.
 
@@ -129,6 +130,8 @@ def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z']):
     chunkby_dims : list of str default ['C','Z']
         Dimensions to chunk resulting dask array by. X and Y dimensions
         will always be in a single chunk. Can contain any of S, T, C, or Z.
+    z_centered : bool default true
+        Whether or not to use Z coordinates relative to the center slice.
 
     Returns
     -------
@@ -200,11 +203,11 @@ def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z']):
 
     x_data = xr.DataArray(da.block(chunks.tolist()), dims=group_dims + chunkby_dims + ['Y', 'X'])
     
-    with open(position_dirs[0]+"metadata.txt") as f:
+    with open(position_dirs[0]+"/metadata.txt") as f:
         meta = json.load(f)
 
     coords = micromanager_metadata_to_coords(meta['Summary'], 
-            n_times=x_data['T'].shape[0], z_centered=z_centered)
+            n_times=x_data['T'].values.shape[0], z_centered=z_centered)
 
     x_data = x_data.assign_coords(coords)
 
