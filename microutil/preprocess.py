@@ -125,7 +125,22 @@ def squash_zstack(
 ):
     """
     Use PLLS to select the best BF slice and compress the fluorescent z stacks using squash_fn.
-    Valid squash_fn's are 'max' and 'mean'.
+
+    Parameters
+    ----------
+    data : xarray.DataArray
+    squash_fn : str default 'mean'
+    bf_name : str default 'BF'
+    channel_dim : str default 'C'
+    z_dim : str default 'Z'
+    y_dim : str default 'Y'
+    x_dim : str default 'X'
+
+    Returns
+    -------
+    squshed : xarray.DataArray 
+        Data array with the Z dimension squashed. Dims will be in STCYX order. Dims
+        other than z_dim will be the same as input DataAray.
     """
 
     # If channels are not named, assume data is only BF stacks
