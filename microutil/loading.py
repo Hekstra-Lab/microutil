@@ -102,13 +102,14 @@ def load_image_sequence(filenames, z_centered=True, pattern=None, coords=None):
         _?(?:(Pos)(\d{1,4}))
         """
 
-    t = tifffile.TiffSequence(filenames, pattern=pattern)
+        
     # load the first file to grab the metadata
-    meta = tifffile.TiffFile(t.files[0]).micromanager_metadata
+    t = tifffile.TiffSequence(filenames, pattern=pattern)
     arr = da.from_zarr(t.aszarr())
     n_times = arr.shape[1]
     
     if coords is None:
+        meta = tifffile.TiffFile(t.files[0]).micromanager_metadata
         coords = micromanager_metadata_to_coords(
             meta['Summary'], n_times=n_times, z_centered=z_centered
         )
@@ -213,10 +214,11 @@ def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z'], z_cente
 
     x_data = xr.DataArray(da.block(chunks.tolist()), dims=group_dims + chunkby_dims + ['Y', 'X'])
 
-    with open(position_dirs[0] + "/metadata.txt") as f:
-        meta = json.load(f)
-
+    
     if coords is None:
+        with open(position_dirs[0] + "/metadata.txt") as f:
+            meta = json.load(f)
+
         coords = micromanager_metadata_to_coords(
             meta['Summary'], n_times=x_data['T'].values.shape[0], z_centered=z_centered
         )
