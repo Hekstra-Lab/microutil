@@ -73,7 +73,7 @@ def micromanager_metadata_to_coords(summary, n_times=None, z_centered=True):
     return coords
 
 
-def load_image_sequence(filenames, z_centered=True, pattern=None):
+def load_image_sequence(filenames, z_centered=True, pattern=None, coords=None):
     """
     Load an image sequence from micromanager .ome.tif files.
     Loads as zarr into dask into xarray
@@ -87,6 +87,10 @@ def load_image_sequence(filenames, z_centered=True, pattern=None):
     pattern : str or None, default: None
         Regex to match the sequence. If None
         this will default ot a Regex that matches: Pos[position number]
+    coords : None or dict
+        Dictionary containing coordinates for the final DataArray. Must have
+        'S', 'T', 'C', 'Z', 'Y, and 'X' as keys. If None
+        attempt to read the relevant information from micromanager metdata.
 
     Returns
     -------
@@ -103,10 +107,11 @@ def load_image_sequence(filenames, z_centered=True, pattern=None):
     meta = tifffile.TiffFile(t.files[0]).micromanager_metadata
     arr = da.from_zarr(t.aszarr())
     n_times = arr.shape[1]
-
-    coords = micromanager_metadata_to_coords(
-        meta['Summary'], n_times=n_times, z_centered=z_centered
-    )
+    
+    if coords is None:
+        coords = micromanager_metadata_to_coords(
+            meta['Summary'], n_times=n_times, z_centered=z_centered
+        )
 
     arr = xr.DataArray(
         arr,
@@ -117,7 +122,7 @@ def load_image_sequence(filenames, z_centered=True, pattern=None):
     return arr
 
 
-def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z'], z_centered=True):
+def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z'], z_centered=True, coords=None):
     """
     Lazily read micromanager generated single frame tiff files.
 
@@ -133,6 +138,10 @@ def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z'], z_cente
         will always be in a single chunk. Can contain any of S, T, C, or Z.
     z_centered : bool default true
         Whether or not to use Z coordinates relative to the center slice.
+    coords : None or dict
+        Dictionary containing coordinates for the final DataArray. Must have
+        'S', 'T', 'C', 'Z', 'Y, and 'X' as keys. If None
+        attempt to read the relevant information from micromanager metdata.
 
     Returns
     -------
@@ -207,9 +216,10 @@ def load_mm_frames(data_dir, glob_pattern=None, chunkby_dims=['C', 'Z'], z_cente
     with open(position_dirs[0] + "/metadata.txt") as f:
         meta = json.load(f)
 
-    coords = micromanager_metadata_to_coords(
-        meta['Summary'], n_times=x_data['T'].values.shape[0], z_centered=z_centered
-    )
+    if coords is None:
+        coords = micromanager_metadata_to_coords(
+            meta['Summary'], n_times=x_data['T'].values.shape[0], z_centered=z_centered
+        )
 
     x_data = x_data.assign_coords(coords)
 
