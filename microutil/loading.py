@@ -25,17 +25,13 @@ def micromanager_metadata_to_coords(summary, n_times=None, z_centered=True):
     ----------
     summary : dict
         Micromanager metadata dictionary.
-
     n_times : int
         Number of actual time points in dataset. If None, read the 'Frames'
         attribute from metadata. This will cause problems if the experiment
         stopped short of the desired number of timepoints.
-
     z_centered : bool, default True
         Rescale the z coordinate to be relative to the center slice.
         Will only work with an odd number of slices.
-
-
 
     Returns
     -------
