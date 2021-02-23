@@ -138,7 +138,7 @@ def squash_zstack(
 
     Returns
     -------
-    squshed : xarray.DataArray 
+    squshed : xarray.DataArray
         Data array with the Z dimension squashed. Dims will be in STCYX order. Dims
         other than z_dim will be the same as input DataAray.
     """
