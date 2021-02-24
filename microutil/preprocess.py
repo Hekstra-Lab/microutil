@@ -36,18 +36,22 @@ def lstsq_slope_dropna(log_power_spec, logR):
     return np.array([sol[0][0]])
 
 
-def compute_power_spectrum(xarr, r_bins=100):
+def compute_power_spectrum(xarr, r_bins=100, x_dim='X', y_dim='Y'):
     """
     Compute the radially-binned power spectrum of individual images. Intended use case if
     for xarr to be a set of z stacks of brightfield images.
 
     Parameters
     ----------
-    xarr : xarray.DataArray (..., x, y)
+    xarr : xarray.DataArray
         DataArray backed by dask arrays. If the DataArray does not have named dimensions
         "x" and "y" assume that the last two dimensions correspond to image dimensions.
     r_bins : int
         Number of bins to use for radial histogram. Default 100.
+    x_dim : str default 'X'
+        Name of dimension corresponding to X pixels
+    y_dim : str default 'Y'
+        Name of dimension corresponding to Y pixels
 
     Returns
     -------
@@ -67,11 +71,11 @@ def compute_power_spectrum(xarr, r_bins=100):
         dims=xarr.dims,
         coords=xarr.coords,
     )
-    fft_mags.coords["x"] = np.arange(fft_mags.x.shape[0]) - fft_mags.x.shape[0] / 2
-    fft_mags.coords["y"] = np.arange(fft_mags.y.shape[0]) - fft_mags.y.shape[0] / 2
-    logR = 0.5 * xr.ufuncs.log1p(fft_mags.coords["x"] ** 2 + fft_mags.coords["y"] ** 2)
+    fft_mags.coords[x_dim] = np.arange(fft_mags[x_dim].shape[0]) - fft_mags[x_dim].shape[0] / 2
+    fft_mags.coords[y_dim] = np.arange(fft_mags[y_dim].shape[0]) - fft_mags[y_dim].shape[0] / 2
+    logR = 0.5 * xr.ufuncs.log1p(fft_mags.coords[x_dim] ** 2 + fft_mags.coords[y_dim] ** 2)
     log_power_spectra = xr.ufuncs.log1p(
-        fft_mags.groupby_bins(logR, bins=r_bins).mean(dim="stacked_x_y")
+        fft_mags.groupby_bins(logR, bins=r_bins).mean(dim=f"stacked_{x_dim}_{y_dim}")
     )
     log_power_spectra["group_bins"] = pd.IntervalIndex(
         log_power_spectra.group_bins.values
@@ -110,40 +114,60 @@ def xarray_plls(log_power_spec, logR):
     )
 
 
-def squash_zstack(data, squash_fn="max", bf_name="BF", channel_name="channel", transpose=True):
+def squash_zstack(
+    data,
+    squash_fn="max",
+    bf_name="BF",
+    channel_dim="C",
+    z_dim='Z',
+    y_dim='Y',
+    x_dim='X',
+):
     """
     Use PLLS to select the best BF slice and compress the fluorescent z stacks using squash_fn.
-    Valid squash_fn's are 'max' and 'mean'.
+
+    Parameters
+    ----------
+    data : xarray.DataArray
+    squash_fn : str default 'mean'
+    bf_name : str default 'BF'
+    channel_dim : str default 'C'
+    z_dim : str default 'Z'
+    y_dim : str default 'Y'
+    x_dim : str default 'X'
+
+    Returns
+    -------
+    squshed : xarray.DataArray
+        Data array with the Z dimension squashed. Dims will be in STCYX order. Dims
+        other than z_dim will be the same as input DataAray.
     """
 
     # If channels are not named, assume data is only BF stacks
-    if channel_name is None:
+    if channel_dim is None:
         bf = data
 
     else:
-        bf = data.sel({channel_name: bf_name})
-        fluo = data.sel({channel_name: data[channel_name] != bf_name})
+        bf = data.sel({channel_dim: bf_name})
+        fluo = data.sel({channel_dim: data[channel_dim] != bf_name})
 
         if squash_fn == "max":
-            fluo_out = fluo.max("z")
+            fluo_out = fluo.max(z_dim)
         if squash_fn == "mean":
-            fluo_out = fluo.mean("z")
+            fluo_out = fluo.mean(z_dim)
 
     # Now do PLLS for Brightfield
-    power_spec = compute_power_spectrum(bf)
-    best_slices = xarray_plls(power_spec, power_spec.group_bins).load().argmin("z")
-    best_bf = bf.isel(z=best_slices)
+    power_spec = compute_power_spectrum(bf, x_dim=x_dim, y_dim=y_dim)
+    best_slices = xarray_plls(power_spec, power_spec.group_bins).load().argmin(z_dim)
+    best_bf = bf.isel({z_dim: best_slices})
 
-    if channel_name is None:
+    if channel_dim is None:
         result = best_bf
 
     else:
-        result = xr.concat((best_bf, fluo_out), dim=channel_name)
+        result = xr.concat((best_bf, fluo_out), dim=channel_dim)
 
-    if 'z' in result.dims:
-        result = result.drop("z")
+    if z_dim in result.dims:
+        result = result.drop(z_dim)
 
-    if transpose:
-        return result.transpose(..., "y", "x")
-    else:
-        return result.transpose(..., "x", "y")
+    return result.transpose(..., channel_dim, y_dim, x_dim)
