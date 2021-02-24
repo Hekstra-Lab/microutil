@@ -94,7 +94,11 @@ def manual_segmentation(img, mask=None):
         def scroll_callback(layer, event):
             if 'Shift' in event.modifiers:
                 new = list(viewer.dims.current_step)
-                if event.delta[1] > 0:
+                # event.delta is (float, float) for horizontal and vertical scroll
+                # on linux shift-scroll gives vertical
+                # but on mac it gives horizontal. So just take the max and hope
+                # for the best
+                if max(event.delta) > 0:
                     if new[0] < mask.shape[0] - 1:
                         new[0] += 1
                 else:
