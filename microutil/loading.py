@@ -81,16 +81,16 @@ def load_image_sequence(filenames, z_centered=True, pattern=None, coords=None):
     Parameters
     ----------
     filenames : str
-        The path/regex that indentifies the file names.
+        The path/regex that identifies the file names.
     z_centered : bool, default: True
         Whether to offset
     pattern : str or None, default: None
         Regex to match the sequence. If None
-        this will default ot a Regex that matches: Pos[position number]
+        this will default to a Regex that matches: Pos[position number]
     coords : None or dict
         Dictionary containing coordinates for the final DataArray. Must have
         'S', 'T', 'C', 'Z', 'Y, and 'X' as keys. If None
-        attempt to read the relevant information from micromanager metdata.
+        attempt to read the relevant information from micromanager metadata.
 
     Returns
     -------
@@ -143,7 +143,7 @@ def load_mm_frames(
     coords : None or dict
         Dictionary containing coordinates for the final DataArray. Must have
         'S', 'T', 'C', 'Z', 'Y, and 'X' as keys. If None
-        attempt to read the relevant information from micromanager metdata.
+        attempt to read the relevant information from micromanager metadata.
 
     Returns
     -------
