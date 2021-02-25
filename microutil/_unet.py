@@ -2,10 +2,6 @@
 This function in this file is taken  based on and/or taken from https://github.com/lpbsscientist/YeaZ-GUI
 which is under the MIT license.
 """
-import os
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
 # Import tensorflow differently depending on version
 from tensorflow import __version__ as tf_version
 

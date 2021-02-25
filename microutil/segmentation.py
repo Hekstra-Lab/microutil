@@ -124,7 +124,7 @@ def individualize(mask, min_distance=10, connectivity=2, min_area=25):
     Returns
     -------
     cell_ids : array-like of int
-        The mask is now 0 for backgroud and integers for cell ids
+        The mask is now 0 for background and integers for cell ids
     """
 
     def _individualize(mask):

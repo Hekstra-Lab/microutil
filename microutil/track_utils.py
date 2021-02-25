@@ -127,7 +127,7 @@ def reindex(arr, min_area=None, inplace=True, time_axis="infer", pos_axis="infer
             for t in range(N_time):
                 # TODO: allow reindex to take the ids over all time
                 # but the areas by time point
-                # idk if thats actually helpful.
+                # idk if that's actually helpful.
                 # it may actually be harmful in the case of a cell leaving
                 _reindex_labels(frames[t], min_area, modified[t])
         else:
