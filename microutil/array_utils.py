@@ -1,6 +1,7 @@
 __all__ = [
     "zeros_like",
     "not_xr",
+    "axis2int",
 ]
 import numpy as np
 import xarray as xr
@@ -39,3 +40,30 @@ def not_xr(arr):
     if isinstance(arr, xr.DataArray):
         return arr.values
     return arr
+
+
+def axis2int(arr, axis, fallthrough=None):
+    """
+    Get the integer index of an axis for xarray or numpy.
+    dims contain *axis*.
+
+    Parameters
+    ----------
+    arr : ndarry or xarray
+    axis : int, str
+        The axis to find the index of
+    fallthrough : int or None, default: None
+        The value to return if the inference doesn't work.
+
+    Returns
+    -------
+    i : int
+        The index in dims.
+
+    """
+    if isinstance(axis, int):
+        return axis
+    else:
+        if isinstance(arr, xr.DataArray) and isinstance(axis, str) and (axis in arr.dims):
+            return arr.dims.index(axis)
+    return fallthrough

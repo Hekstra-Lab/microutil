@@ -4,6 +4,7 @@ __all__: [
 import numpy as np
 import xarray as xr
 import warnings
+from .array_utils import axis2int
 
 try:
     import napari
@@ -15,7 +16,7 @@ except ImportError:
     )
 
 
-def manual_segmentation(img, mask=None):
+def manual_segmentation(img, mask=None, time_axis='T'):
     """
     Open up Napari set up for manual segmentation. Adds these custom keybindings:
     q : erase
@@ -35,6 +36,9 @@ def manual_segmentation(img, mask=None):
         Last to dims should be XY. You probably want this to be a BF image.
     mask : array-like or None
         If array-like it should be broadcastable to the same dims as *img*
+    time_axis : str or int or None, default: 'T'
+        Which axis to treat as the time axis for shift-scroll.
+        If None or a string when img is an xarray then the first axis will be used.
 
     Returns
     -------
@@ -58,6 +62,7 @@ def manual_segmentation(img, mask=None):
         print("see https://github.com/napari/napari/issues/2190 for details")
         mask = np.array(mask)
 
+    time_axis = axis2int(img, axis=time_axis, fallthrough=0)
     with napari.gui_qt():
         # create the viewer and add the cells image
         viewer = napari.view_image(img, name="cells")
@@ -99,11 +104,11 @@ def manual_segmentation(img, mask=None):
                 # but on mac it gives horizontal. So just take the max and hope
                 # for the best
                 if max(event.delta) > 0:
-                    if new[0] < mask.shape[0] - 1:
-                        new[0] += 1
+                    if new[time_axis] < mask.shape[time_axis] - 1:
+                        new[time_axis] += 1
                 else:
-                    if new[0] > 0:
-                        new[0] -= 1
+                    if new[time_axis] > 0:
+                        new[time_axis] -= 1
                 viewer.dims.current_step = new
 
             elif labels.mode in ["paint", "erase"]:
