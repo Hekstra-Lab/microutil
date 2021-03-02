@@ -25,7 +25,7 @@ from skimage.segmentation import watershed
 from .track_utils import _reindex_labels
 
 
-def apply_unet(data, model, batch_size=None, workers=1, use_multiprocessing=False):
+def apply_unet(data, model, batch_size=None):
     """
     Apply the UNET to make pixel-wise predictions of cell vs not-cell
 
