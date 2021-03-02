@@ -86,7 +86,10 @@ def apply_unet(data, model):
     # but we can't squeeze because that might remove axis with size 1
     out = model.predict(arr)[..., :-row_add, :-col_add, 0].reshape(orig_shape)
     if is_xarr:
-        return xr.DataArray(out, dims=data.dims, coords=data.coords)
+        xarr = xr.DataArray(out, dims=data.dims, coords=data.coords)
+        if 'C' in xarr.coords:
+            xarr['C'] = 'mask'
+        return xarr
     else:
         return out
 
