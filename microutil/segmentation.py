@@ -88,7 +88,10 @@ def apply_unet(data, model, batch_size=None):
         ..., : orig_shape[-2], : orig_shape[-1], 0
     ].reshape(orig_shape)
     if is_xarr:
-        return xr.DataArray(out, dims=data.dims, coords=data.coords)
+        xarr = xr.DataArray(out, dims=data.dims, coords=data.coords)
+        if 'C' in xarr.coords:
+            xarr['C'] = 'mask'
+        return xarr
     else:
         return out
 
