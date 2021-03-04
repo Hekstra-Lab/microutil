@@ -112,13 +112,39 @@ def threshold_predictions(predictions, threshold=None):
     return predictions > threshold
 
 
-def individualize(mask, min_distance=10, connectivity=2, min_area=25):
+def _process_seeds(seeds):
+    Ss, Ts, Ys, Xs = np.nonzero(seeds.values)
+    # get the maximum number of cells in any frame so we know what to pad to
+    # probs could make this part speedier
+    max_N = 0
+    for s in np.unique(Ss):
+        N = np.unique(Ts[Ss == s], return_counts=True)[1].max()
+        if N > max_N:
+            max_N = N
+
+    T = Ts.max() + 1
+    S = Ss.max() + 1
+    _seeds = np.zeros([S, T, max_N, 2], np.float32)
+    _seeds[...] = np.nan
+    for s in range(S):
+        s_idx = Ss == s
+        for t in range(T):
+            t_idx = Ts[s_idx] == t
+
+            _seeds[s, t, : np.sum(t_idx)] = np.hstack(
+                [Ys[s_idx][t_idx][:, None], Xs[s_idx][t_idx][:, None]]
+            )
+    return _seeds
+
+
+def individualize(ds, min_distance=10, connectivity=2, min_area=25):
     """
-    Turn a boolean mask into a a mask of cell ids
+    Take a dataset and by modifying it inplace turn the mask into individualized
+    cell labels and watershed seed points.
 
     Parameters
     ---------
-    mask : array-like
+    ds : (S, T, ..., Y, X) dataset
         Last two dimensions should be XY
     min_distance : int, default: 10
         Passed through to scipy.ndimage.morphology.distance_transform_edt
@@ -127,11 +153,6 @@ def individualize(mask, min_distance=10, connectivity=2, min_area=25):
     min_area : number, default: 25
         The minimum number of pixels for an object to be considered a cell.
         If *None* then no cuttoff will be applied, which can reduce computation time.
-
-    Returns
-    -------
-    cell_ids : array-like of int
-        The mask is now 0 for background and integers for cell ids
     """
 
     def _individualize(mask):
@@ -146,18 +167,20 @@ def individualize(mask, min_distance=10, connectivity=2, min_area=25):
 
         mask = watershed(topology, m_lab, mask=mask, connectivity=2)
         if min_area is None:
-            return mask
+            return mask, peak_mask
         else:
-            return _reindex_labels(mask, min_area, inplace=None)[0]
+            return _reindex_labels(mask, min_area, inplace=None)[0], peak_mask
 
-    return xr.apply_ufunc(
+    indiv, seeds = xr.apply_ufunc(
         _individualize,
-        mask,
+        ds['mask'],
         input_core_dims=[["Y", "X"]],
-        output_core_dims=[["Y", "X"]],
+        output_core_dims=[("Y", "X"), ("Y", "X")],
         dask="parallelized",
         vectorize=True,
     )
+    ds['labels'] = indiv
+    ds['watershed_seeds'] = ("S", "T", "points", "_xy"), _process_seeds(seeds)
 
 
 class point_selector:
@@ -294,7 +317,7 @@ class brush:
             self._im.set_data(self.arr)
 
 
-def update_ds_seeds(ds, new_seeds, T):
+def update_ds_seeds(ds, new_seeds, S, T):
     """
     Replace the watershed_seeds in a dataset for a single time point
     and position. This helper automatically pads when necessary.
@@ -313,7 +336,7 @@ def update_ds_seeds(ds, new_seeds, T):
     else:
         new_seeds = new_seeds.pad(pad_width={'points': (0, -diff)})
 
-    seeds[T] = new_seeds
+    seeds[S, T] = new_seeds
 
     vs = list(ds.variables.keys())
     vs.remove('watershed_seeds')
@@ -322,9 +345,25 @@ def update_ds_seeds(ds, new_seeds, T):
     return new_ds
 
 
+def _prep_S_T(shape, S, T):
+    # TODO put this part into a nested decorator?
+    if S is None:
+        if shape[0] == 1:
+            S = 0
+        else:
+            raise ValueError("*S* cannot be *None* if there is more than one position.")
+    if T is None:
+        if shape[1] == 1:
+            T = 0
+        else:
+            raise ValueError("*T* cannot be *None* if there is more than one time point.")
+    return S, T
+
+
 def correct_watershed(
     data,
-    time_point,
+    S=None,
+    T=None,
     xlim=None,
     ylim=None,
     point_radius=50,
@@ -341,8 +380,11 @@ def correct_watershed(
     ----------
     data : DataSet
         Must have "images", and "mask", "labels", and "watershed_points". And "images"
-        must contain "BF"
-    time_point : int
+        must contain "BF". Images must have shape (S, T, C, Y, X).
+    S, T : int or None
+        The Scene and time point to use. If the dim has length 1 then None
+        can used as default in place of specifying.
+        TODO: Have None imply using a slider for that dimension.
     xlim, ylim : tuple of int
     point_radius : float, default: 50
         The size of the points being marked.
@@ -361,6 +403,8 @@ def correct_watershed(
     from mpl_interactions import zoom_factory, panhandler
     import matplotlib.pyplot as plt
 
+    S, T = _prep_S_T(tuple(data.dims[k] for k in ['S', 'T']), S, T)
+
     def _dims_to_min_max(dims):
         if isinstance(dims, int):
             return (0, dims)
@@ -377,14 +421,14 @@ def correct_watershed(
     cmap.set_under(alpha=0)
 
     xy_slices = (slice(*xlim), slice(*ylim))
-    BF = data['images'].sel(C='BF')[time_point][xy_slices]
-    mask = data['mask'][time_point][xy_slices]
-    indiv = data['labels'][time_point][xy_slices]
+    BF = data['images'].sel(C='BF')[S, T][xy_slices]
+    mask = data['mask'][S, T][xy_slices]
+    indiv = data['labels'][S, T][xy_slices]
     # keep the max cell number so we don't accidentally create duplicate cells
     # this is used in recalc. Don't constantly call max there to avoid
     # the numbers getting forever larger.
     label_offset = indiv.max().data.item()
-    seeds = data['watershed_seeds'][time_point].astype(np.int)
+    seeds = data['watershed_seeds'][S, T].astype(np.int)
     idx = seeds[:, 0] != np.nan
     idx = np.logical_and(idx, np.logical_and(seeds[:, 0] >= xlim[0], seeds[:, 0] <= xlim[1]))
     idx = np.logical_and(idx, np.logical_and(seeds[:, 1] >= ylim[0], seeds[:, 1] <= ylim[1]))
@@ -430,8 +474,8 @@ def correct_watershed(
         out_im.norm.vmax = uniq[-1] + 1
 
         # update the dataset in place
-        data['mask'][time_point][xy_slices] = new_mask.arr
-        data['labels'][time_point][xy_slices] = indiv2
+        data['mask'][S, T][xy_slices] = new_mask.arr
+        data['labels'][S, T][xy_slices] = indiv2
         # create new seeds - taking care to include all the ones that
         # are not shown and to avoid any nans or other undesirable values
         # (sometimes that nans ended up as most negative float32)
@@ -446,7 +490,7 @@ def correct_watershed(
         new_seeds = np.vstack((orig_seeds, new_seeds))
 
         # do the transpose `[1,0]` to account for the one we did during set up.
-        data = update_ds_seeds(data, new_seeds[:, [1, 0]], time_point)
+        data = update_ds_seeds(data, new_seeds[:, [1, 0]], S, T)
 
     button.on_click(recalc)
     fig.tight_layout()
