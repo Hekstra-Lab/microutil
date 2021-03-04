@@ -374,7 +374,19 @@ def correct_watershed(
 ):
     """
     Manually correct parts of an image with a bad watershed.
-    This will modify the 'watershed_seeds' and 'labels' variables of dat
+    This will modify the 'watershed_seeds' and 'labels' variables of data inplace.
+
+    For choosing points:
+
+    click: add a point
+    shift-click: remove a point
+
+    For adjusting the mask:
+
+    Scroll : zoom in and out
+    Middle-click + drag: pan
+    left-click: erase
+    ctrl + left-click: draw
 
     Parameters
     ----------
