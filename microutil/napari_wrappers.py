@@ -215,8 +215,26 @@ def correct_watershed(ds):
         )
         watershed_single_frame_preseeded(ds, S, T)
         labels.data = ds['labels'].values
+        
+    _lastmask = mask
+    def toggle_bf_mask(viewer):
+        nonlocal _lastmask
+        if mask.visible or labels.visible:
+            if mask.visible:
+                _lastmask = mask
+                mask.visible = False
+            if labels.visible:
+                _lastmask = labels
+                labels.visible = False
+                
+        else:
+            _lastmask.visible = True
+            set_correct_active_labels()
+        
+        
 
 
-    viewer.bind_key("1", toggle_masks)
-    viewer.bind_key("2", toggle_points_vs_labels)
+    viewer.bind_key("2", toggle_masks)
+    viewer.bind_key("3", toggle_points_vs_labels)
+    viewer.bind_key("4", toggle_bf_mask)
     viewer.bind_key("Control-l", gogogo)
