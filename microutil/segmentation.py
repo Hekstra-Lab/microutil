@@ -32,7 +32,7 @@ from skimage.segmentation import watershed
 from .track_utils import _reindex_labels
 
 
-def apply_unet(data, model):
+def apply_unet(data, model, batch_size=None):
     """
     Apply the UNET to make pixel-wise predictions of cell vs not-cell
 
@@ -42,6 +42,9 @@ def apply_unet(data, model):
         The final two axes should be XY
     model : str or unet instance
         Either an instance of a loaded unet model or a path the model weights
+    batch_size : int or None default None
+        Number of samples per batch for applying neural network. For GPU with
+        32G memory and 1020x1024 images batch size can be as large as 10.
 
     Returns
     -------
@@ -61,8 +64,9 @@ def apply_unet(data, model):
     arr = np.vectorize(equalize_adapthist, signature="(x,y)->(x,y)")(arr)
 
     orig_shape = arr.shape
-    row_add = 16 - orig_shape[-2] % 16
-    col_add = 16 - orig_shape[-1] % 16
+    row_add = 16 - orig_shape[-2] % 16 if orig_shape[-2] % 16 else 0
+    col_add = 16 - orig_shape[-1] % 16 if orig_shape[-1] % 16 else 0
+
     npad = [(0, 0)] * arr.ndim
     npad[-2] = (0, row_add)
     npad[-1] = (0, col_add)
@@ -87,7 +91,9 @@ def apply_unet(data, model):
 
     # need the final reshape to squeeze off a potential leading 1 in the shape
     # but we can't squeeze because that might remove axis with size 1
-    out = model.predict(arr)[..., :-row_add, :-col_add, 0].reshape(orig_shape)
+    out = model.predict(arr, batch_size=batch_size)[
+        ..., : orig_shape[-2], : orig_shape[-1], 0
+    ].reshape(orig_shape)
     if is_xarr:
         xarr = xr.DataArray(out, dims=data.dims, coords=data.coords)
         if 'C' in xarr.coords:
