@@ -7,7 +7,6 @@ import numpy as np
 import xarray as xr
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
-from .napari_wrappers import manual_segmentation
 from ._names import POS, TIME
 from .array_utils import zeros_like, not_xr
 
@@ -176,6 +175,7 @@ def check_cell_numbers(BF, mask, check_after=True, correct=True, bad_frames=None
         bad_frames = check_cell_numbers(BF, tracked)
 
     """
+    from .napari_wrappers import manual_segmentation
     time_axis = 0
     N_time = mask.shape[time_axis]
 

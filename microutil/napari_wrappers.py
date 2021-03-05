@@ -4,9 +4,9 @@ import xarray as xr
 import warnings
 from .array_utils import axis2int
 from .segmentation import (
-    _process_seeds,
     watershed_single_frame_preseeded,
     peak_mask_to_napari_points,
+    napari_points_to_peak_mask,
 )
 
 try:
@@ -175,6 +175,18 @@ def correct_watershed(ds):
     scroll_time(viewer)
     apply_points_keybinds(points)
 
+    def toggle_masks(*args):
+        if mask.visible and labels.visible:
+            # ugh - I guess set the labels to visible
+            labels_and_points()
+        elif mask.visible:
+            labels_and_points()
+        else:
+            mask_and_points()
+        if viewer.active_layer in [mask, labels]:
+            set_correct_active_labels()
+
+
     def mask_and_points(*args):
         mask.visible = True
         labels.visible = False
@@ -183,27 +195,28 @@ def correct_watershed(ds):
         mask.visible = False
         labels.visible = True
 
+    layer_arr = np.array([labels, mask])
+    def set_correct_active_labels():
+        """If a labels layer is active make sure it is the correct one"""
+        new_layer = layer_arr[[labels.visible, mask.visible]][0]
+        viewer.active_layer = new_layer
+
+    def toggle_points_vs_labels(viewer):
+        if viewer.active_layer == points:
+            set_correct_active_labels()
+        else:
+            viewer.active_layer = points
+
     def gogogo(viewer):
         labels_and_points()
-        dat = points_layer.data
         S, T = viewer.dims.current_step[:2]
-        new_seeds = _process_seeds(dat[:, 2:], dat[:, :2])[S, T]
-        peak_mask = np.zeros([ds.dims['Y'], ds.dims['X']], dtype=np.bool)
-        peak_mask[tuple(new_seeds.astype(np.int).T)] = True
-        ds['peak_mask'][S, T] = peak_mask
+        ds['peak_mask'][S,T] = napari_points_to_peak_mask(
+            points.data, (ds.dims['Y'], ds.dims['X']), S, T
+        )
         watershed_single_frame_preseeded(ds, S, T)
         labels.data = ds['labels'].values
 
-    layer_arr = np.array([mask, labels])
 
-    def active_layer(viewer):
-        if viewer.active_layer == points:
-            new_layer = layer_arr[[mask.visible, labels.visible]][0]
-        else:
-            new_layer = points
-        viewer.active_layer = new_layer
-
-    viewer.bind_key("1", mask_and_points)
-    viewer.bind_key("2", labels_and_points)
+    viewer.bind_key("1", toggle_masks)
+    viewer.bind_key("2", toggle_points_vs_labels)
     viewer.bind_key("Control-l", gogogo)
-    viewer.bind_key('3', active_layer)

@@ -115,6 +115,26 @@ def threshold_predictions(predictions, threshold=None):
     return predictions > threshold
 
 
+def napari_points_to_peak_mask(points, shape, S, T):
+    """
+    Parameters
+    ----------
+    points : (N, d) array
+        The *data* attribte of a napari points layer
+    shape : tuple
+        The shape of the output mask
+    S, T : int
+
+    Returns
+    -------
+    peak_mask : array of bool
+    """
+    new_seeds = _process_seeds(points[:, -2:], points[:, :2])[S, T]
+    peak_mask = np.zeros(shape, dtype=np.bool)
+    peak_mask[tuple(new_seeds.astype(np.int).T)] = True
+    return peak_mask
+
+
 def _process_seeds(seeds, idxs=None):
     if idxs is None:
         Ss, Ts, Ys, Xs = np.nonzero(seeds.values)
