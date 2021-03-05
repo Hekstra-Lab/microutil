@@ -513,6 +513,7 @@ def correct_watershed(
     axs[1].imshow(BF, cmap="gray")
     sel = point_selector(axs[0], init_points=subset_seeds, color=point_color, radius=point_radius)
     new_mask = brush(axs[1], mask, alpha=mask_alpha, brush_size=mask_brush_size)
+    fig.tight_layout()
 
     out_im = axs[2].imshow(indiv, cmap=cmap)
     uniq = np.sort(np.unique(indiv))
@@ -564,5 +565,4 @@ def correct_watershed(
         data = update_ds_seeds(data, new_seeds[:, [1, 0]], S, T)
 
     button.on_click(recalc)
-    fig.tight_layout()
     display(button)
