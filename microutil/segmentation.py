@@ -2,9 +2,12 @@ __all__ = [
     "apply_unet",
     "threshold_predictions",
     "individualize",
+    "watershed_single_frame_preseeded",
+    "peak_mask_to_napari_points",
     "point_selector",
     "brush",
     "correct_watershed",
+    "update_ds_seeds",
 ]
 
 
@@ -112,8 +115,13 @@ def threshold_predictions(predictions, threshold=None):
     return predictions > threshold
 
 
-def _process_seeds(seeds):
-    Ss, Ts, Ys, Xs = np.nonzero(seeds.values)
+def _process_seeds(seeds, idxs=None):
+    if idxs is None:
+        Ss, Ts, Ys, Xs = np.nonzero(seeds.values)
+    else:
+        idxs = np.asarray(idxs).astype(np.int)
+        Ss, Ts = idxs.T
+        Ys, Xs = seeds[:, -2], seeds[:, -1]
     # get the maximum number of cells in any frame so we know what to pad to
     # probs could make this part speedier
     max_N = 0
@@ -135,6 +143,49 @@ def _process_seeds(seeds):
                 [Ys[s_idx][t_idx][:, None], Xs[s_idx][t_idx][:, None]]
             )
     return _seeds
+
+
+def watershed_single_frame_preseeded(ds, S, T):
+    """
+    Perform a watershed on a single frame of a dataset. This will
+    not populate the watershed labels. They must already exist.
+    You probably don't want to use this function when scripting. This is primarily
+    provided for usage inside of correct_watershed.
+
+    Parameters
+    ----------
+    ds : Dataset
+    S, T : int
+    """
+    mask = ds['mask'][S, T]
+    topology = -ndi.distance_transform_edt(mask)
+    peak_mask = ds['peak_mask'][S, T]
+    ds['labels'][S, T] = watershed(topology, label(peak_mask), mask=mask, connectivity=2)
+
+
+def peak_mask_to_napari_points(peak_mask):
+    """
+    Convert a peak mask array into the points format that napari expects
+
+    Parameters
+    ----------
+    peak_mask : (S, T, Y, X) array of bool
+
+    Returns
+    -------
+    points : (N, 4) array of int
+    """
+    points = _process_seeds(peak_mask)
+    s = points.shape[:-1]
+    N = np.cumprod(s)[-1]
+    points_transformed = np.hstack(
+        [
+            a.ravel()[:, None]
+            for a in np.meshgrid(*[np.arange(s) for s in points.shape[:-1]], indexing="ij")
+        ]
+        + [points.reshape((N, 2))]
+    )[:, [0, 1, 3, 4]]
+    return points_transformed[~np.isnan(points_transformed).any(axis=1)]
 
 
 def individualize(ds, min_distance=10, connectivity=2, min_area=25):
@@ -180,6 +231,7 @@ def individualize(ds, min_distance=10, connectivity=2, min_area=25):
         vectorize=True,
     )
     ds['labels'] = indiv
+    ds['peak_mask'] = seeds
     ds['watershed_seeds'] = ("S", "T", "points", "_xy"), _process_seeds(seeds)
 
 
@@ -324,10 +376,17 @@ def update_ds_seeds(ds, new_seeds, S, T):
 
     Parameters
     ----------
+    ds : Dataset
     new_seeds : (N, 2) array
+    S, T: int
+
+    Returns
+    -------
+    new_ds : Dataset
+        Mostly a view of the old dataset, but with the *watershed_seeds* variable replaced.
     """
     if isinstance(new_seeds, np.ndarray):
-        new_seeds = xr.DataArray(new_seeds, dims=('points', '_xy'))
+        new_seeds = xr.DataArray(new_seeds, dims=("points", "_xy"))
     seeds = ds['watershed_seeds']
     new_len = len(new_seeds)
     diff = new_len - ds.dims['points']
