@@ -32,7 +32,7 @@ def scroll_time(viewer, time_axis=1):
             # but on mac it gives horizontal. So just take the max and hope
             # for the best
             if max(event.delta) > 0:
-                if new[time_axis] < max_time - 1:
+                if new[time_axis] < max_time:
                     new[time_axis] += 1
             else:
                 if new[time_axis] > 0:
@@ -73,10 +73,7 @@ def apply_label_keybinds(labels):
     time_axis = 1
 
     def scroll_callback(layer, event):
-        #         if "Shift" in event.modifiers:
-        #             scroll_time(viewer, event)
-
-        if labels.mode in ["paint", "erase"]:
+        if len(event.modifiers) == 0 and labels.mode in ["paint", "erase"]:
             if event.delta[1] > 0:
                 labels.brush_size += 1
             else:
@@ -186,7 +183,6 @@ def correct_watershed(ds):
         if viewer.active_layer in [mask, labels]:
             set_correct_active_labels()
 
-
     def mask_and_points(*args):
         mask.visible = True
         labels.visible = False
@@ -196,6 +192,7 @@ def correct_watershed(ds):
         labels.visible = True
 
     layer_arr = np.array([labels, mask])
+
     def set_correct_active_labels():
         """If a labels layer is active make sure it is the correct one"""
         new_layer = layer_arr[[labels.visible, mask.visible]][0]
@@ -210,13 +207,14 @@ def correct_watershed(ds):
     def gogogo(viewer):
         labels_and_points()
         S, T = viewer.dims.current_step[:2]
-        ds['peak_mask'][S,T] = napari_points_to_peak_mask(
+        ds['peak_mask'][S, T] = napari_points_to_peak_mask(
             points.data, (ds.dims['Y'], ds.dims['X']), S, T
         )
         watershed_single_frame_preseeded(ds, S, T)
         labels.data = ds['labels'].values
-        
+
     _lastmask = mask
+
     def toggle_bf_mask(viewer):
         nonlocal _lastmask
         if mask.visible or labels.visible:
@@ -226,13 +224,10 @@ def correct_watershed(ds):
             if labels.visible:
                 _lastmask = labels
                 labels.visible = False
-                
+
         else:
             _lastmask.visible = True
             set_correct_active_labels()
-        
-        
-
 
     viewer.bind_key("2", toggle_masks)
     viewer.bind_key("3", toggle_points_vs_labels)
