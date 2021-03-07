@@ -136,6 +136,7 @@ def napari_points_to_peak_mask(points, shape, S, T):
     peak_mask : array of bool
     """
     new_seeds = _process_seeds(points[:, -2:], points[:, :2])[S, T]
+    new_seeds = new_seeds[~np.any(np.isnan(new_seeds), axis=1)]
     peak_mask = np.zeros(shape, dtype=np.bool)
     peak_mask[tuple(new_seeds.astype(np.int).T)] = True
     return peak_mask
