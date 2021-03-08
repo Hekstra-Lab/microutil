@@ -122,7 +122,7 @@ def napari_points_to_peak_mask(points, shape, S, T):
     Parameters
     ----------
     points : (N, d) array
-        The *data* attribte of a napari points layer
+        The *data* attribute of a napari points layer
     shape : tuple
         The shape of the output mask
     S, T : int
@@ -255,4 +255,3 @@ def individualize(ds, min_distance=10, connectivity=2, min_area=25):
     )
     ds['labels'] = indiv
     ds['peak_mask'] = seeds
-
