@@ -239,7 +239,7 @@ def individualize(ds, min_distance=10, connectivity=2, min_area=25):
 
         m_lab = label(peak_mask)
 
-        mask = watershed(topology, m_lab, mask=mask, connectivity=2)
+        mask = watershed(topology, m_lab, mask=mask, connectivity=connectivity)
         if min_area is None:
             return mask, peak_mask
         else:
