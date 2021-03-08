@@ -161,7 +161,34 @@ def manual_segmentation(img, mask=None, time_axis='T'):
 def correct_watershed(ds):
     """
     Manually correct parts of an image with a bad watershed.
-    This will modify the 'peak_mask' and 'labels' variables of data inplace.
+    This will modify the 'peak_mask' and 'labels' variables of the Dataset inplace.
+
+    Keybindings:
+
+    2 : toggle between mask and labels
+    3 : toggle between controlling mask/labels or points
+    4 : Toggle visibility of mask+labels on and off
+    Control-l : rereun current frame's watershed
+    Shift + Scroll : scrub through time points
+
+    Point Layer Keybindings:
+    q : delete selected points
+    w : Switch to `Add Points` mode
+    e : Switch to `Select` mode
+
+    Mask/Labels layer Keybindngs:
+    q : erase
+    w : fill
+    e : paint
+    r : pick
+    t : create new label
+    s : fill with background
+
+    Scroll : modify brush size when in paint mode
+
+    Parameters
+    ----------
+    ds : (S, T, ... , Y, X) xarray dataset
     """
     viewer = napari.view_image(ds["images"].sel(C="BF"))
     labels = viewer.add_labels(ds["labels"], name="labels", visible=False)
