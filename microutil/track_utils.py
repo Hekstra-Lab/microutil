@@ -176,6 +176,7 @@ def check_cell_numbers(BF, mask, check_after=True, correct=True, bad_frames=None
 
     """
     from .napari_wrappers import manual_segmentation
+
     time_axis = 0
     N_time = mask.shape[time_axis]
 

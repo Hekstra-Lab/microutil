@@ -9,13 +9,9 @@
         "id": "blosc",
         "shuffle": 1
     },
-    "dtype": "|O",
+    "dtype": "<U7",
     "fill_value": null,
-    "filters": [
-        {
-            "id": "vlen-utf8"
-        }
-    ],
+    "filters": null,
     "order": "C",
     "shape": [
         4
