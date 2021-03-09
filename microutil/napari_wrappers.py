@@ -191,8 +191,8 @@ def correct_watershed(ds):
     ds : (S, T, ... , Y, X) xarray dataset
     """
     viewer = napari.view_image(ds["images"].sel(C="BF"))
-    labels = viewer.add_labels(ds["labels"], name="labels", visible=False)
-    mask = viewer.add_labels(ds["mask"], name="mask", visible=True)
+    labels = viewer.add_labels(ds["labels"].values, name="labels", visible=False)
+    mask = viewer.add_labels(ds["mask"].values, name="mask", visible=True)
     points = viewer.add_points(peak_mask_to_napari_points(ds['peak_mask']), size=1)
     apply_label_keybinds(labels)
     apply_label_keybinds(mask)
