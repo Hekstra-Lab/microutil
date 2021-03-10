@@ -222,8 +222,9 @@ def correct_watershed(ds):
 
     def set_correct_active_labels():
         """If a labels layer is active make sure it is the correct one"""
+        viewer.layers.unselect_all()
         new_layer = layer_arr[[labels.visible, mask.visible]][0]
-        viewer.active_layer = new_layer
+        new_layer.selected = True
 
     def toggle_points_vs_labels(viewer):
         if viewer.active_layer == points:
