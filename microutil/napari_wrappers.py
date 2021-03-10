@@ -168,6 +168,7 @@ def correct_watershed(ds):
     2 : toggle between mask and labels
     3 : toggle between controlling mask/labels or points
     4 : Toggle visibility of mask+labels on and off
+    5 : Toggle whether painting paints through all time points
     Control-l : rereun current frame's watershed
     Shift + Scroll : scrub through time points
 
@@ -190,6 +191,7 @@ def correct_watershed(ds):
     ----------
     ds : (S, T, ... , Y, X) xarray dataset
     """
+
     viewer = napari.view_image(ds["images"].sel(C="BF"))
     labels = viewer.add_labels(ds["labels"].values, name="labels", visible=False)
     mask = viewer.add_labels(ds["mask"].values, name="mask", visible=True)
@@ -198,6 +200,42 @@ def correct_watershed(ds):
     apply_label_keybinds(mask)
     scroll_time(viewer)
     apply_points_keybinds(points)
+
+    through_time = False
+
+    def setup_through_time(layer):
+        old_paint = layer.paint
+        old_fill = layer.fill
+
+        def paint_through_time(coord, new_label, refresh=True):
+            if through_time:
+                for i in range(labels.data.shape[1]):
+                    c = list(coord)
+                    c[1] = i
+                    old_paint(c, new_label, refresh)
+            else:
+                old_paint(coord, new_label, refresh)
+
+        # doesn't work because napari fill only allows filling the currently
+        # viewed slice
+        # https://github.com/napari/napari/blob/402771b0a331a62a891fd0a08c2f698424d51633/napari/layers/labels/labels.py#L809-L816
+        # def fill_through_time(coord, new_label, refresh=True):
+        #     print('here??')
+        #     if through_time:
+        #         print('here2')
+        #         for i in range(labels.data.shape[1]):
+        #             c = list(coord)
+        #             c[1] = i
+        #             print(c)
+        #             old_fill(c, new_label, refresh)
+            # else:
+            #     old_fill(coord, new_label, refresh)
+
+        layer.paint = paint_through_time
+        # layer.fill = fill_through_time
+
+    setup_through_time(labels)
+    setup_through_time(mask)
 
     def toggle_masks(*args):
         if mask.visible and labels.visible:
@@ -224,6 +262,8 @@ def correct_watershed(ds):
         """If a labels layer is active make sure it is the correct one"""
         viewer.layers.unselect_all()
         new_layer = layer_arr[[labels.visible, mask.visible]][0]
+        # using seleccted instead of active layer due to
+        # https://github.com/napari/napari/issues/2390
         new_layer.selected = True
 
     def toggle_points_vs_labels(viewer):
@@ -257,7 +297,12 @@ def correct_watershed(ds):
             _lastmask.visible = True
             set_correct_active_labels()
 
+    def toggle_through_time(*args):
+        nonlocal through_time
+        through_time = not through_time
+
     viewer.bind_key("2", toggle_masks)
     viewer.bind_key("3", toggle_points_vs_labels)
     viewer.bind_key("4", toggle_bf_mask)
+    viewer.bind_key("5", toggle_through_time)
     viewer.bind_key("Control-l", gogogo)
