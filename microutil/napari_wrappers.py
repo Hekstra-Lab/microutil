@@ -270,7 +270,8 @@ def correct_watershed(ds):
         if viewer.active_layer == points:
             set_correct_active_labels()
         else:
-            viewer.active_layer = points
+            viewer.layers.unselect_all()
+            points.selected = True
 
     def gogogo(viewer):
         labels_and_points()
