@@ -1,4 +1,8 @@
-__all__: ["manual_segmentation", "correct_watershed"]
+__all__: [
+    "manual_segmentation",
+    "correct_watershed",
+    "find_bad_frames",
+]
 import numpy as np
 import xarray as xr
 import warnings
@@ -8,6 +12,8 @@ from .segmentation import (
     peak_mask_to_napari_points,
     napari_points_to_peak_mask,
 )
+from .track_utils import reindex_labels, find_bad_frames
+from skimage.segmentation import relabel_sequential
 
 try:
     import napari
@@ -228,8 +234,8 @@ def correct_watershed(ds):
         #             c[1] = i
         #             print(c)
         #             old_fill(c, new_label, refresh)
-            # else:
-            #     old_fill(coord, new_label, refresh)
+        # else:
+        #     old_fill(coord, new_label, refresh)
 
         layer.paint = paint_through_time
         # layer.fill = fill_through_time
@@ -270,7 +276,8 @@ def correct_watershed(ds):
         if viewer.active_layer == points:
             set_correct_active_labels()
         else:
-            viewer.active_layer = points
+            viewer.layers.unselect_all()
+            points.selected = True
 
     def gogogo(viewer):
         labels_and_points()
@@ -306,3 +313,72 @@ def correct_watershed(ds):
     viewer.bind_key("4", toggle_bf_mask)
     viewer.bind_key("5", toggle_through_time)
     viewer.bind_key("Control-l", gogogo)
+
+
+def correct_decreasing_cell_frames(ds, bad_frames=None):
+    """
+    Show only the pairs of frames for which cell number decreasing.
+    This will modify *ds['labels']* in place when closed or when `ctrl-shift-d` pressed.
+
+    Controls:
+    Labels editing the same as always
+    Control-Shift-d : check the values and change what is displayed to the problem frames.
+
+    Parameters
+    ----------
+    ds : (S, T, ..., Y, X) Dataset
+    bad_frames : list of tuple of int, optional
+        If *None*, then `find_bad_frames` will be used
+    """
+
+    def gen_data(bad_frames=None):
+        if bad_frames is None:
+            bad_frames = find_bad_frames(ds)
+        s_idx = []
+        t_idx = []
+        for i in bad_frames:
+            s_idx.extend([i[0], i[0]])
+            t_idx.extend([i[1] - 1, i[1]])
+        BF = (
+            ds['images']
+            .sel(C='BF')
+            .values[:][tuple(s_idx), tuple(t_idx)]
+            .reshape(len(t_idx) // 2, 2, *ds['labels'].shape[-2:])
+        )
+        indiv = (
+            ds['labels']
+            .values[:][tuple(s_idx), tuple(t_idx)]
+            .reshape(len(t_idx) // 2, 2, *ds['labels'].shape[-2:])
+        )
+        return BF, indiv, s_idx, t_idx
+
+    def reassign():
+        """
+        Because the reshape of the original values makes a copy rather than a view :(
+        so standard in place editing doesn't work
+        """
+        indiv = ds['labels'].values[:][tuple(s_idx), tuple(t_idx)] = labels.data.reshape(
+            len(t_idx), *labels.data.shape[-2:]
+        )
+
+    def check_all(*args):
+        reassign()
+        nonlocal t_idx, s_idx
+        BF, indiv, s_idx, t_idx = gen_data(None)
+        image.data = BF
+        labels.data = indiv
+
+    BF, indiv, s_idx, t_idx = gen_data(bad_frames)
+    viewer = napari.Viewer()
+    image = viewer.add_image(BF)
+    labels = viewer.add_labels(indiv)
+    apply_label_keybinds(labels)
+    scroll_time(viewer)
+    viewer.bind_key('Control-Shift-d', check_all)
+
+    def on_close(*args, **kwargs):
+        reassign()
+
+    # this on_close may not work in the future. See discussion on zulip
+    # https://napari.zulipchat.com/#narrow/stream/212875-general/topic/on-close/near/230088585
+    viewer.window._qt_window.destroyed.connect(on_close)

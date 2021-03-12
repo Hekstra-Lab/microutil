@@ -1,6 +1,7 @@
 __all__ = [
     "construct_cost_matrix",
     "frame_to_features",
+    "track_single_pos",
     "track",
 ]
 
@@ -8,6 +9,7 @@ import scipy
 from scipy import ndimage as ndi
 from scipy.optimize import linear_sum_assignment
 import numpy as np
+import xarray as xr
 from .track_utils import _reindex_labels, reindex
 
 
@@ -80,7 +82,7 @@ def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4, debug_info
     return C, M
 
 
-def track(cells, weights=[1, 1, 1 / 5], pad=1e4):
+def track_single_pos(cells, weights=[1, 1, 1 / 5], pad=1e4):
     """
     Attempt to keep cells' labels the same over time points.
 
@@ -124,3 +126,49 @@ def track(cells, weights=[1, 1, 1 / 5], pad=1e4):
             idx = arr[t] == curr + 1
             tracked[t][idx] = prev + 1
     return tracked
+
+
+def track(ds, weights=[1, 1, 1 / 5], pad=1e4):
+    """
+    Attempt to keep cells' labels the same over time points. This will modify
+    the *labels* variable of the dataset in place
+
+    Parameters
+    ----------
+    ds : (S, T, ..., Y, X) Dataset
+        The dataset to use. Should contain a variable *labels*
+    weights : (3,) array-like, default: [1, 1, 1/5]
+        The weighting of features to use for the minkowski distance.
+        The current order is [X, Y, area]
+    pad : number or None, default: 1e4
+        The value to use when padding the cost matrix to be square. Set to *None*
+        to not pad.
+    """
+    # for loop for now.
+    # xarray rolling operations look promising, but I couldn't get them working.
+    # TODO: double and flip the graph to allow for lineage tracking
+    # https://www.hpl.hp.com/techreports/2012/HPL-2012-40R1.pdf
+    from skimage.segmentation import relabel_sequential
+
+    def f(arr):
+        return relabel_sequential(arr)[0]
+
+    # for some reason apply_ufunc wasn't work here
+    for s in range(ds.dims['S']):
+        for t in range(ds.dims['T']):
+            ds['labels'][s, t] = relabel_sequential(ds['labels'][s, t].values)[0]
+
+    for s in range(ds.dims['S']):
+        labels = ds['labels'][s].values
+        arr = np.copy(ds['labels'][s].values)
+        for t in range(1, ds.dims['T']):
+            C, M = construct_cost_matrix(
+                labels[t - 1], labels[t], weights=weights, debug_info=f'{s=}, t={t}'
+            )
+            row_ind, col_ind = linear_sum_assignment(C)
+            assignments = np.stack([row_ind, col_ind], axis=1)
+
+            for i in range(len(assignments)):
+                prev, curr = assignments[i]
+                idx = arr[t] == curr + 1
+                ds['labels'][s][t].values[idx] = prev + 1
