@@ -24,7 +24,7 @@ from skimage.exposure import equalize_adapthist
 from skimage.filters import threshold_isodata
 from skimage.feature import peak_local_max
 from skimage.morphology import label
-from skimage.segmentation import watershed
+from skimage.segmentation import watershed, relabel_sequential
 from .track_utils import _reindex_labels
 
 

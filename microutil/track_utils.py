@@ -1,7 +1,9 @@
 __all__ = [
     "reindex",
+    "reindex_labels",
     "check_cell_numbers",
     "find_duplicate_labels",
+    "find_bad_frames",
 ]
 import numpy as np
 import xarray as xr
@@ -9,6 +11,7 @@ import ipywidgets as widgets
 import matplotlib.pyplot as plt
 from ._names import POS, TIME
 from .array_utils import zeros_like, not_xr
+from skimage.segmentation import relabel_sequential
 
 
 def _reindex_labels(arr, min_area, inplace=None):
@@ -252,3 +255,47 @@ def find_duplicate_labels(frame):
 
     slider.observe(update, names='value')
     display(slider)
+
+
+def find_bad_frames(ds, reindex=True):
+    """
+    Find the frames that have fewer cells than the previous frame.
+
+    Parameters
+    ----------
+    ds : (S, T, ..., Y, X) DataSet
+    reindex : bool, default: True
+        Whether to reindex each frame as well.
+
+    Returns
+    -------
+    bad : list
+        With entries (s, t) of the frames that have fewer cells than the previous
+        frame.
+    """
+    bad = []
+    for s in range(ds.dims["S"]):
+        if reindex:
+            ds["labels"][s, 0] = relabel_sequential(ds['labels'][s, 0].values)[0]
+        for t in range(1, ds.dims["T"]):
+            if reindex:
+                ds["labels"][s, t] = relabel_sequential(ds['labels'][s, t].values)[0]
+            prev_max = np.max(ds["labels"][s][t - 1].values)
+            curr_max = np.max(ds["labels"][s][t].values)
+            if curr_max < prev_max:
+                print(f"{s=}, {t=} - {prev_max} {curr_max}")
+                bad.append((s, t))
+    return bad
+
+
+def reindex_labels(ds):
+    """
+    Make the cell labels sequential. Modifies the *labels* variable in place.
+
+    Parameters
+    ----------
+    ds : (S, T, ..., Y, X) Dataset
+    """
+    for s in range(ds.dims['S']):
+        for t in range(ds.dims['T']):
+            ds['labels'][s, t] = relabel_sequential(ds['labels'][s, t].values)[0]
