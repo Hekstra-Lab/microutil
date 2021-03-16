@@ -176,6 +176,7 @@ def correct_watershed(ds):
     4 : Toggle visibility of mask+labels on and off
     5 : Toggle whether painting paints through all time points
     Control-l : rereun current frame's watershed
+    Control-Shift-l : rereun watershed for all the frames
     Shift + Scroll : scrub through time points
 
     Point Layer Keybindings:
@@ -288,6 +289,16 @@ def correct_watershed(ds):
         watershed_single_frame_preseeded(ds, S, T)
         labels.data = ds['labels'].values
 
+    def gogogo_all(viewer):
+        labels_and_points()
+        for s in range(ds.dims['S']):
+            for t in range(ds.dims['T']):
+                ds['peak_mask'][S, T] = napari_points_to_peak_mask(
+                    points.data, (ds.dims['Y'], ds.dims['X']), S, T
+                )
+                watershed_single_frame_preseeded(ds, S, T)
+                labels.data = ds['labels'].values
+
     _lastmask = mask
 
     def toggle_bf_mask(viewer):
@@ -313,6 +324,7 @@ def correct_watershed(ds):
     viewer.bind_key("4", toggle_bf_mask)
     viewer.bind_key("5", toggle_through_time)
     viewer.bind_key("Control-l", gogogo)
+    viewer.bind_key("Control-Shift-l", gogogo_all)
 
 
 def correct_decreasing_cell_frames(ds, bad_frames=None):
