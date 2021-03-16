@@ -40,7 +40,7 @@ def frame_to_features(frame):
 
 
 def construct_cost_matrix(
-    prev, curr, weights=[1, 1, 1 / 20], pad=1e4, debug_info='', normalize=False, distance_cutoff=.5
+    prev, curr, weights=[1, 1, 1 / 20], pad=1e4, debug_info='', normalize=False, distance_cutoff=0.5
 ):
     """
     prev : (X, Y) array of int
@@ -72,10 +72,15 @@ def construct_cost_matrix(
     """
     prev_features = frame_to_features(prev)
     curr_features = frame_to_features(curr)
+    xy_dist = scipy.spatial.distance.cdist(prev_features[:, :2], curr_features[:, :2])
     if normalize:
         norm(prev_features, curr_features)
 
     C = scipy.spatial.distance.cdist(prev_features, curr_features, metric="minkowski", w=weights)
+
+    max_dist = np.sqrt(prev.shape[0] ** 2 + prev.shape[1] ** 2)
+    too_far_idx = xy_dist > distance_cutoff * max_dist
+    C[too_far_idx] = 1e6
     if np.any(np.isnan(C)):
         print(prev_features)
         print(curr_features)
@@ -139,7 +144,7 @@ def track_single_pos(cells, weights=[1, 1, 1 / 5], pad=1e4):
     return tracked
 
 
-def track(ds, weights=[1, 1, 1 / 5], pad=1e4, normalize=False):
+def track(ds, weights=[1, 1, 1 / 5], pad=1e4, normalize=False, distance_cutoff=.5):
     """
     Attempt to keep cells' labels the same over time points. This will modify
     the *labels* variable of the dataset in place
@@ -154,6 +159,14 @@ def track(ds, weights=[1, 1, 1 / 5], pad=1e4, normalize=False):
     pad : number or None, default: 1e4
         The value to use when padding the cost matrix to be square. Set to *None*
         to not pad.
+    normalize : bool, default: False
+        Whether to normalize the each frames features. Optional as it sometimes seems
+        to cause issues.
+    distance_cutoff : float, default: .5
+        Float between [0,1] the maximum distance relative to the frame size
+        for which cells can be considered to be tracked. Cell pairs with a distance
+        geater than the computed maximum will be given an entry into the cost matrix of
+        1e6
     """
     # for loop for now.
     # xarray rolling operations look promising, but I couldn't get them working.
@@ -179,6 +192,7 @@ def track(ds, weights=[1, 1, 1 / 5], pad=1e4, normalize=False):
                 weights=weights,
                 debug_info=f'{s=}, t={t}',
                 normalize=normalize,
+                distance_cutoff=distance_cutoff
             )
             row_ind, col_ind = linear_sum_assignment(C)
             assignments = np.stack([row_ind, col_ind], axis=1)
