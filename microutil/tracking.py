@@ -40,7 +40,14 @@ def frame_to_features(frame):
 
 
 def construct_cost_matrix(
-    prev, curr, weights=[1, 1, 1 / 20], pad=1e4, debug_info='', normalize=False, distance_cutoff=0.5
+    prev,
+    curr,
+    weights=[1, 1, 1 / 20],
+    pad=1e4,
+    debug_info='',
+    normalize=False,
+    distance_cutoff=0.5,
+    compute_overlap=True,
 ):
     """
     prev : (X, Y) array of int
@@ -61,6 +68,9 @@ def construct_cost_matrix(
         for which cells can be considered to be tracked. Cell pairs with a distance
         geater than the computed maximum will be given an entry into the cost matrix of
         1e6
+    compute_overlap : bool, default: True
+        Whether to to weight the assignments by how much the cells overlap between the
+        two timesteps. This may be a slow step.
 
     Returns
     -------
@@ -81,6 +91,22 @@ def construct_cost_matrix(
     max_dist = np.sqrt(prev.shape[0] ** 2 + prev.shape[1] ** 2)
     too_far_idx = xy_dist > distance_cutoff * max_dist
     C[too_far_idx] = 1e6
+
+    # figure out if masks overlap and make those ones more likely
+    def unpadded_overlap(prev, curr, shape):
+        p_uniq = np.unique(prev)
+        c_uniq = np.unique(curr)
+        arr = np.zeros(shape)
+        for i in p_uniq:
+            for j in c_uniq:
+                arr[i - 1, j - 1] = np.sum((prev == i) * (curr == j))
+        return arr
+
+    if compute_overlap:
+        overlaps = unpadded_overlap(prev, curr, C.shape)
+        overlaps /= overlaps.max()
+        C *= 1 - overlaps
+
     if np.any(np.isnan(C)):
         print(prev_features)
         print(curr_features)
@@ -144,7 +170,9 @@ def track_single_pos(cells, weights=[1, 1, 1 / 5], pad=1e4):
     return tracked
 
 
-def track(ds, weights=[1, 1, 1 / 5], pad=1e4, normalize=False, distance_cutoff=.5):
+def track(
+    ds, weights=[1, 1, 1 / 5], pad=1e4, normalize=False, distance_cutoff=0.5, compute_overlap=True
+):
     """
     Attempt to keep cells' labels the same over time points. This will modify
     the *labels* variable of the dataset in place
@@ -167,6 +195,9 @@ def track(ds, weights=[1, 1, 1 / 5], pad=1e4, normalize=False, distance_cutoff=.
         for which cells can be considered to be tracked. Cell pairs with a distance
         geater than the computed maximum will be given an entry into the cost matrix of
         1e6
+    compute_overlap : bool, default: True
+        Whether to to weight the assignments by how much the cells overlap between the
+        two timesteps. This may be a slow step.
     """
     # for loop for now.
     # xarray rolling operations look promising, but I couldn't get them working.
@@ -192,7 +223,8 @@ def track(ds, weights=[1, 1, 1 / 5], pad=1e4, normalize=False, distance_cutoff=.
                 weights=weights,
                 debug_info=f'{s=}, t={t}',
                 normalize=normalize,
-                distance_cutoff=distance_cutoff
+                distance_cutoff=distance_cutoff,
+                compute_overlap=compute_overlap,
             )
             row_ind, col_ind = linear_sum_assignment(C)
             assignments = np.stack([row_ind, col_ind], axis=1)
