@@ -40,7 +40,7 @@ def frame_to_features(frame):
 
 
 def construct_cost_matrix(
-    prev, curr, weights=[1, 1, 1 / 5], pad=1e4, debug_info='', normalize=False
+    prev, curr, weights=[1, 1, 1 / 20], pad=1e4, debug_info='', normalize=False, distance_cutoff=.5
 ):
     """
     prev : (X, Y) array of int
@@ -56,6 +56,11 @@ def construct_cost_matrix(
     normalize : bool, default: False
         Whether to normalize the each frames features. Optional as it sometimes seems
         to cause issues.
+    distance_cutoff : float, default: .5
+        Float between [0,1] the maximum distance relative to the frame size
+        for which cells can be considered to be tracked. Cell pairs with a distance
+        geater than the computed maximum will be given an entry into the cost matrix of
+        1e6
 
     Returns
     -------
@@ -134,7 +139,7 @@ def track_single_pos(cells, weights=[1, 1, 1 / 5], pad=1e4):
     return tracked
 
 
-def track(ds, weights=[1, 1, 1 / 5], pad=1e4):
+def track(ds, weights=[1, 1, 1 / 5], pad=1e4, normalize=False):
     """
     Attempt to keep cells' labels the same over time points. This will modify
     the *labels* variable of the dataset in place
@@ -169,7 +174,11 @@ def track(ds, weights=[1, 1, 1 / 5], pad=1e4):
         arr = np.copy(ds['labels'][s].values)
         for t in range(1, ds.dims['T']):
             C, M = construct_cost_matrix(
-                labels[t - 1], labels[t], weights=weights, debug_info=f'{s=}, t={t}'
+                labels[t - 1],
+                labels[t],
+                weights=weights,
+                debug_info=f'{s=}, t={t}',
+                normalize=normalize,
             )
             row_ind, col_ind = linear_sum_assignment(C)
             assignments = np.stack([row_ind, col_ind], axis=1)
