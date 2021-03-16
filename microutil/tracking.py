@@ -39,7 +39,9 @@ def frame_to_features(frame):
     return np.hstack([com, areas[1:, None]])
 
 
-def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4, debug_info=''):
+def construct_cost_matrix(
+    prev, curr, weights=[1, 1, 1 / 5], pad=1e4, debug_info='', normalize=False
+):
     """
     prev : (X, Y) array of int
         The previous time point's labels
@@ -51,6 +53,9 @@ def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4, debug_info
     pad : number or None, default: 1e4
         The value to use when padding the cost matrix to be square. Set to *None*
         to not pad.
+    normalize : bool, default: False
+        Whether to normalize the each frames features. Optional as it sometimes seems
+        to cause issues.
 
     Returns
     -------
@@ -62,7 +67,8 @@ def construct_cost_matrix(prev, curr, weights=[1, 1, 1 / 5], pad=1e4, debug_info
     """
     prev_features = frame_to_features(prev)
     curr_features = frame_to_features(curr)
-    norm(prev_features, curr_features)
+    if normalize:
+        norm(prev_features, curr_features)
 
     C = scipy.spatial.distance.cdist(prev_features, curr_features, metric="minkowski", w=weights)
     if np.any(np.isnan(C)):
