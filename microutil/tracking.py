@@ -10,7 +10,7 @@ from scipy import ndimage as ndi
 from scipy.optimize import linear_sum_assignment
 import numpy as np
 import xarray as xr
-from .track_utils import _reindex_labels, reindex
+from .track_utils import _reindex_labels, reindex, overlap
 
 
 def norm(prev, curr):
@@ -82,6 +82,7 @@ def construct_cost_matrix(
     """
     prev_features = frame_to_features(prev)
     curr_features = frame_to_features(curr)
+    min_areas = np.minimum.outer(prev_features[:, -1], curr_features[:, -1])
     xy_dist = scipy.spatial.distance.cdist(prev_features[:, :2], curr_features[:, :2])
     if normalize:
         norm(prev_features, curr_features)
@@ -93,24 +94,16 @@ def construct_cost_matrix(
     C[too_far_idx] = 1e6
 
     # figure out if masks overlap and make those ones more likely
-    def unpadded_overlap(prev, curr, shape):
-        p_uniq = np.unique(prev)
-        c_uniq = np.unique(curr)
-        arr = np.zeros(shape)
-        for i in p_uniq:
-            for j in c_uniq:
-                arr[i - 1, j - 1] = np.sum((prev == i) * (curr == j))
-        return arr
-
     if compute_overlap:
-        overlaps = unpadded_overlap(prev, curr, C.shape)
-        overlaps /= overlaps.max()
+        overlaps = overlap(prev, curr, (C.shape[0] + 1, C.shape[1] + 1))[1:, 1:].astype(float)
+        overlaps /= min_areas
         C *= 1 - overlaps
 
     if np.any(np.isnan(C)):
         print(prev_features)
         print(curr_features)
         print(C)
+
     M, N = C.shape
     if pad is not None:
         if M < N:
