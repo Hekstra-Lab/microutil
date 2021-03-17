@@ -1,7 +1,7 @@
 __all__: [
     "manual_segmentation",
     "correct_watershed",
-    "find_bad_frames",
+    "correct_decreasing_cell_frames",
 ]
 import numpy as np
 import xarray as xr
@@ -327,7 +327,7 @@ def correct_watershed(ds):
     viewer.bind_key("Control-Shift-l", gogogo_all)
 
 
-def correct_decreasing_cell_frames(ds, bad_frames=None):
+def correct_decreasing_cell_frames(ds, bad_frames=None, extra_labels=None):
     """
     Show only the pairs of frames for which cell number decreasing.
     This will modify *ds['labels']* in place when closed or when `ctrl-shift-d` pressed.
@@ -341,7 +341,19 @@ def correct_decreasing_cell_frames(ds, bad_frames=None):
     ds : (S, T, ..., Y, X) Dataset
     bad_frames : list of tuple of int, optional
         If *None*, then `find_bad_frames` will be used
+    extra_labels : str or list of strings
+        Other channels in the dataset to view. Will be added
+        as a napari label layer so should probably be binary images.
+
+    Returns
+    -------
+    viewer : Napari viewer object
     """
+    if extra_labels is not None:
+        if isinstance(extra_labels, str):
+            extra_labels = [extra_labels]
+    else:
+        extra_labels = []
 
     def gen_data(bad_frames=None):
         if bad_frames is None:
@@ -362,7 +374,17 @@ def correct_decreasing_cell_frames(ds, bad_frames=None):
             .values[:][tuple(s_idx), tuple(t_idx)]
             .reshape(len(t_idx) // 2, 2, *ds['labels'].shape[-2:])
         )
-        return BF, indiv, s_idx, t_idx
+
+        other_layers = [
+            (
+                ds[other]
+                .values[:][tuple(s_idx), tuple(t_idx)]
+                .reshape(len(t_idx) // 2, 2, *ds[other].shape[-2:])
+            )
+            for other in extra_labels
+        ]
+
+        return BF, indiv, other_layers, s_idx, t_idx
 
     def reassign():
         """
@@ -376,14 +398,21 @@ def correct_decreasing_cell_frames(ds, bad_frames=None):
     def check_all(*args):
         reassign()
         nonlocal t_idx, s_idx
-        BF, indiv, s_idx, t_idx = gen_data(None)
+        BF, indiv, other_layers, s_idx, t_idx = gen_data(None)
         image.data = BF
+        for data, layer in zip(other_layers, others):
+            layer.data = data
+
         labels.data = indiv
 
-    BF, indiv, s_idx, t_idx = gen_data(bad_frames)
+    BF, indiv, other_layers, s_idx, t_idx = gen_data(bad_frames)
     viewer = napari.Viewer()
     image = viewer.add_image(BF)
     labels = viewer.add_labels(indiv)
+    others = [viewer.add_labels(other) for other in other_layers]
+    viewer.unselect_all()
+    label.selected = True
+
     apply_label_keybinds(labels)
     scroll_time(viewer)
     viewer.bind_key('Control-Shift-d', check_all)
@@ -394,3 +423,5 @@ def correct_decreasing_cell_frames(ds, bad_frames=None):
     # this on_close may not work in the future. See discussion on zulip
     # https://napari.zulipchat.com/#narrow/stream/212875-general/topic/on-close/near/230088585
     viewer.window._qt_window.destroyed.connect(on_close)
+
+    return viewer
