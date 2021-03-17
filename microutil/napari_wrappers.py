@@ -410,8 +410,8 @@ def correct_decreasing_cell_frames(ds, bad_frames=None, extra_labels=None):
     image = viewer.add_image(BF)
     labels = viewer.add_labels(indiv)
     others = [viewer.add_labels(other) for other in other_layers]
-    viewer.unselect_all()
-    label.selected = True
+    viewer.layers.unselect_all()
+    labels.selected = True
 
     apply_label_keybinds(labels)
     scroll_time(viewer)
