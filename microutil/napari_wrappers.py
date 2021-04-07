@@ -291,8 +291,8 @@ def correct_watershed(ds):
 
     def gogogo_all(viewer):
         labels_and_points()
-        for s in range(ds.dims['S']):
-            for t in range(ds.dims['T']):
+        for S in range(ds.dims['S']):
+            for T in range(ds.dims['T']):
                 ds['peak_mask'][S, T] = napari_points_to_peak_mask(
                     points.data, (ds.dims['Y'], ds.dims['X']), S, T
                 )
