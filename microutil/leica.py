@@ -3,9 +3,13 @@ import pandas as pd
 import xarray as xr
 import dask.array as da
 import tifffile as tiff
+import glob
+import re
+import xml.etree.ElementTree as ET
 
 __all__ = [
             "get_standard_metadata",
+            "get_ldm_metadata",
             "get_coords",
             "load_standard_leica_frames",
             "gogogo_dimension_data",
@@ -53,6 +57,24 @@ def get_standard_metadata(data_dir, meta_tag="_Properties.xml"):
     )
     return metadata
 
+def get_ldm_metadata(data_dir, meta_tag="*_Properties.xml"):
+    """
+    This is somewhat bespoke. But it will work as long as LDM jobs are titled according to F{fov#}_{mode}
+    """
+    metadata = pd.DataFrame(
+        sorted(glob.glob(data_dir + meta_tag)), columns=["filename"]
+    )
+    metadata["acq_name"] = metadata.filename.str.split("/").apply(
+        lambda x: x[-1].strip(meta_tag)
+    )
+    metadata["tmp"] = metadata.acq_name.str.split("_")
+    metadata["fov"] = metadata.tmp.str[0].str[1].astype(int)
+    metadata["mode"] = metadata.tmp.str[1].str[:-3]
+    metadata["ldm_idx"] = metadata.tmp.str[1].str[-3:].astype(int)
+    metadata = metadata.drop("tmp", axis=1)
+    metadata[META_COLS] = None
+    metadata = metadata.apply(gogogo_dimension_data, axis=1)
+    return metadata
 
 def gogogo_dimension_data(entry):
     parsed = ET.parse(entry.filename)
@@ -109,11 +131,11 @@ def leica_stczyx(x):
 def load_standard_leica_frames(df, idx_mapper, coords=None, chunkby_dims='CZ'):
 
     if callable(idx_mapper):
-        df = df.merge(
-            df.apply(idx_mapper, axis=1, result_type='expand'), right_index=True, left_index=True
+        df = df.join(
+            df.apply(idx_mapper, axis=1, result_type='expand') 
         )
     elif isinstance(idx_mapper, pd.DataFrame):
-        df = df.merge(idx_mapper)
+        df = df.join(idx_mapper)
     else:
         raise TypeError(
             "Must provide a callable to map names to indices or a pandas dataframe containing the indices"
@@ -127,9 +149,9 @@ def load_standard_leica_frames(df, idx_mapper, coords=None, chunkby_dims='CZ'):
     for idx, val in df.groupby(group_dims):
         darr = da.from_zarr(tiff.imread(val.filename.tolist(), aszarr=True)).rechunk(-1)
         shape = tuple(df[x].nunique() for x in df.columns if x in chunkby_dims) + darr.shape[-2:]
-        print(idx)
-        print(darr.shape)
-        print(shape)
+        #print(idx)
+        #print(darr.shape)
+        #print(shape)
         darr = darr.reshape(shape)
         chunks[idx] = darr
 
