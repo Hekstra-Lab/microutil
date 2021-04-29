@@ -11,7 +11,7 @@ __all__ = [
             "get_standard_metadata",
             "get_ldm_metadata",
             "get_coords",
-            "load_standard_leica_frames",
+            "load_leica_frames",
             "gogogo_dimension_data",
             "leica_stczyx",
 ]
@@ -204,6 +204,9 @@ def load_leica_frames(df, idx_mapper, coords=None, chunkby_dims='CZ'):
     return x_data
 
 def load_srs_timelapse_dataset(data_dir):
+    """
+    This essentially assumes that files are named according to `Pos{S}_{mode}{ldm_idx}_t{R}_z{Z}_ch{C}.tif`
+    """
     #glob the files
     srs_files = pd.DataFrame({"filename":sorted(glob.glob(data_dir+"*srs*z*.tif"))})
     fluo_files = pd.DataFrame({"filename":sorted(glob.glob(data_dir+"*fluo*z*.tif"))})
@@ -218,8 +221,10 @@ def load_srs_timelapse_dataset(data_dir):
     metadata = get_ldm_metadata(data_dir+"/Pos*")
     f_coords = get_coords(metadata.loc[metadata['mode']=='fluo'],'SZYX', {'C':['GFP', 'mCherry', 'BF']})
     s_coords = get_coords(metadata.loc[metadata['mode']=='srs'], 'SZYX',{'C':['BF', 'SRS']})
-
+    
+    #load the images
     srs_data = load_leica_frames(srs_files, srs_inds, coords=s_coords)
     fluo_data = load_leica_frames(fluo_files, fluo_inds, coords=f_coords)
     
+    #combine into dataset and return
     return xr.Dataset({'srs':srs_data, 'fluo':fluo_data}).astype(srs_data.dtype)
