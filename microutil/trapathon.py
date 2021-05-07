@@ -17,6 +17,31 @@ __all__ = [
 
 
 def angular_offset_single(im, width=70, prominence=0.3, edges=None, edge_sum_thresh=10):
+    """
+    Calculate a global angular offset for a single FOV based on computed edges
+    in the BF. Inteded to be called by xarray.apply_func in `angular_offset`.
+    Default values should work for 40x images from Harvard CBS Nikon TE2000.
+
+
+    Parameters
+    ----------
+    im : np.array
+      Array containing a single image. Assumes the traps are oriented vertically (along the 0 axis)
+      and that the flow channels are horizontal (axis=1)
+    width: int, default 70
+      Approximate vertical width of trapping region.     prominence: float, default 0.3
+      Prominence of peaks passed to `find_peaks` for identifying top and bottom of the trapping region.
+    edges: None or np.array shame shape as im
+      If you have precomputed the edges, you can pass them in directly. 
+    edge_sum_thresh: float, default 10
+      Threshold for ruling out parts of image that contain traps.
+
+    Returns
+    -------
+    rotation: float
+      Angle in radians by which im could be rotated in order to orient the trapps to be vertical.
+    """
+
     if edges is None:
         edges = sobel(im)
 
@@ -46,6 +71,22 @@ def angular_offset_single(im, width=70, prominence=0.3, edges=None, edge_sum_thr
 
 
 def angular_offset(bf, dims='STCZYX', **kwargs):
+    """
+    Calculate the angular offset required to align each image such that the traps are oriented vertically.
+    Wraps `angular_offset_single` with `xarray.apply_ufunc`. kwargs get passed directly to `angular_offset_single`.
+
+    Parameters
+    ----------
+    bf: xarray.DataArray
+      DataArray containing brightfield images.
+    dims: str or list of str, default 'STCZYX`
+      Dimensions names for `bf` that correspond to STCZYX
+
+    Returns
+    -------
+    angles: xr.DataArray with all but X,Y dimensions of bf
+      Angle to rotate each frame by to render the traps vertically in the image.
+    """
     if isinstance(dims, str):
         S, T, C, Z, Y, X = list(dims)
     elif isinstance(dims, list):
@@ -311,3 +352,5 @@ def gogogo_trapathon(
     rough.load()
     print("Loaded necessary data")
     return rough.isel(Y=y_idx, X=x_idx)
+
+### TODO make function to screen for shitty trenches
