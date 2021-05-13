@@ -32,7 +32,7 @@ def angular_offset_single(im, width=70, prominence=0.3, edges=None, edge_sum_thr
       Approximate vertical width of trapping region.     prominence: float, default 0.3
       Prominence of peaks passed to `find_peaks` for identifying top and bottom of the trapping region.
     edges: None or np.array shame shape as im
-      If you have precomputed the edges, you can pass them in directly. 
+      If you have precomputed the edges, you can pass them in directly.
     edge_sum_thresh: float, default 10
       Threshold for ruling out parts of image that contain traps.
 
@@ -352,5 +352,6 @@ def gogogo_trapathon(
     rough.load()
     print("Loaded necessary data")
     return rough.isel(Y=y_idx, X=x_idx)
+
 
 ### TODO make function to screen for shitty trenches
