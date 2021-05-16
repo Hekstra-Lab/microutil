@@ -53,8 +53,6 @@ def cell_op(
         intensity = xr.ones_like(labels)
 
     Nmax = labels.isel({T: -1}).max().item()
-    print(f"{intensity.sizes=}")
-    print(f"{labels.sizes=}")
 
     return xr.apply_ufunc(
         func,
