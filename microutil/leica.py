@@ -233,4 +233,4 @@ def load_srs_timelapse_dataset(data_dir):
     return xr.Dataset({'srs': srs_data, 'fluo': fluo_data}).astype(srs_data.dtype)
 
 def virids_cycler(N):
-    return cycler(color=plt.cm.viridis(np.linspace(0.1,0.9,N))
+    return cycler(color=plt.cm.viridis(np.linspace(0.1,0.9,N)))
