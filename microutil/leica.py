@@ -6,6 +6,7 @@ import tifffile as tiff
 import glob
 import re
 import xml.etree.ElementTree as ET
+from cycler import cycler
 
 __all__ = [
     "get_standard_metadata",
@@ -230,3 +231,6 @@ def load_srs_timelapse_dataset(data_dir):
 
     # combine into dataset and return
     return xr.Dataset({'srs': srs_data, 'fluo': fluo_data}).astype(srs_data.dtype)
+
+def virids_cycler(N):
+    return cycler(color=plt.cm.viridis(np.linspace(0.1,0.9,N))
