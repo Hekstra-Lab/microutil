@@ -1,10 +1,12 @@
 __all__ = [
-    "average",
-    "center_of_mass",
+    "single_cell_average",
+    "single_cell_center_of_mass",
     "cell_op",
+    "single_cell_bootstrap",
 ]
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 import warnings
 import scipy.ndimage as ndi
@@ -66,7 +68,7 @@ def cell_op(
     )
 
 
-def average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='STCZYX'):
+def single_cell_average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='STCZYX'):
     """
     Compute the average of the inntensity array over each labelled area.
     """
@@ -82,12 +84,8 @@ def average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='ST
     )
 
 
-def center_of_mass(ds, com_name='com', label_name='labels', cell_dim_name='CellID', dims='STCZYX'):
+def single_cell_center_of_mass(ds, com_name='com', label_name='labels', cell_dim_name='CellID', dims='STCZYX'):
 
-    if isinstance(dims, str):
-        S, T, C, Z, Y, X = list(dims)
-    elif isinstance(dims, list):
-        S, T, C, Z, Y, X = dims
 
     def padded_com(intensity, labels, Nmax=None):
         with warnings.catch_warnings():
@@ -106,4 +104,51 @@ def center_of_mass(ds, com_name='com', label_name='labels', cell_dim_name='CellI
     )
 
 
-# def bootstrap
+def single_cell_bootstrap(ds, intensity, n_samples, label_name='labels', cell_dim_name='CellID', sample_name='samples', dims='STCZYX'):
+    """
+    Return bootstrap samples from each labelled cell in a dataset.
+    """
+    if isinstance(dims, str):
+        S, T, C, Z, Y, X = list(dims)
+    elif isinstance(dims, list):
+        S, T, C, Z, Y, X = dims
+
+    if isinstance(intensity, str):
+        intensity = ds[intensity]
+
+    Nmax = ds[label_name].max().item()
+    
+    rng = np.random.default_rng()
+
+
+
+    bootstrapped =xr.full_like(intensity.isel(X=0,Y=0).drop([Y,X]), np.nan, dtype=float).expand_dims({cell_dim_name:Nmax+1, sample_name:n_samples}).copy(deep=True)
+
+    for i in range(Nmax+1):
+        indexer = pd.DataFrame(np.array(np.nonzero(ds[label_name].data==i)).T, columns=list('STYX'))
+        out_idx = {cell_dim_name:i}
+        for group, vals in indexer.groupby([S,T]):
+            #print(group, vals.shape[0])
+            out_idx = {**out_idx, **dict(zip([S,T], group))}
+            idx = rng.integers(vals.shape[0], size=n_samples)
+            sample_idx = vals.iloc[idx].reset_index(drop=True).to_xarray()
+            bootstrapped[out_idx] = intensity[sample_idx]
+
+            #sample_ds = ds[sample_idx] # group+(slice(None),i)
+            #for var in sample_ds:
+            #    bootstrapped[var][out_idx] = sample_ds[var]
+    return bootstrapped
+
+
+
+
+
+
+
+
+
+
+
+
+
+
