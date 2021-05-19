@@ -7,5 +7,5 @@ from .masks import *
 from .segmentation import *
 from .tracking import *
 from .napari_wrappers import *
-from .leica import *
-from .single_cell import *
+from . import leica
+from . import single_cell
