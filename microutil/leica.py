@@ -85,7 +85,7 @@ def gogogo_dimension_data(entry):
     parsed = ET.parse(entry.filename)
     for x in parsed.iter("TimeStampList"):
         d, t, ms = x.attrib.values()
-    entry.timestamp = pd.to_datetime(d + " " + t) + pd.to_timedelta(int(ms), unit="ms")
+    entry['timestamp'] = pd.to_datetime(d + " " + t) + pd.to_timedelta(int(ms), unit="ms")
     for d in parsed.iter("DimensionDescription"):
         a = d.attrib
         entry[f'{a["DimID"].lower()}_origin'] = float(re.sub("[^0-9.]", "", a["Origin"]))
