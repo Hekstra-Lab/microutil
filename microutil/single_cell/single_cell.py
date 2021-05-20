@@ -1,8 +1,8 @@
 __all__ = [
-    "single_cell_average",
-    "single_cell_center_of_mass",
+    "average",
+    "center_of_mass",
     "cell_op",
-    "single_cell_bootstrap",
+    "bootstrap",
 ]
 
 import numpy as np
@@ -68,7 +68,7 @@ def cell_op(
     )
 
 
-def single_cell_average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='STCZYX'):
+def average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='STCZYX'):
     """
     Compute the average of the inntensity array over each labelled area.
     """
@@ -84,8 +84,11 @@ def single_cell_average(ds, intensity, label_name='labels', cell_dim_name="CellI
     )
 
 
-def single_cell_center_of_mass(ds, com_name='com', label_name='labels', cell_dim_name='CellID', dims='STCZYX'):
-
+def center_of_mass(ds, com_name='com', label_name='labels', cell_dim_name='CellID', dims='STCZYX'):
+    
+    # TODO rescale com values according to XY coordinates of ds
+    # TODO set coordinates of COM dim to [Y,X] to reduce downstream confusing
+    # TODO low priority - write helper function somwhere for scattering coms on hyperslicer
 
     def padded_com(intensity, labels, Nmax=None):
         with warnings.catch_warnings():
@@ -104,7 +107,7 @@ def single_cell_center_of_mass(ds, com_name='com', label_name='labels', cell_dim
     )
 
 
-def single_cell_bootstrap(ds, intensity, n_samples, label_name='labels', cell_dim_name='CellID', sample_name='samples', dims='STCZYX'):
+def bootstrap(ds, intensity, n_samples, label_name='labels', cell_dim_name='CellID', sample_name='samples', dims='STCZYX'):
     """
     Return bootstrap samples from each labelled cell in a dataset.
     """

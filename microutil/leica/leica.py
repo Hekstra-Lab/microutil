@@ -6,6 +6,7 @@ import tifffile as tiff
 import glob
 import re
 import xml.etree.ElementTree as ET
+import matplotlib.pyplot as plt
 from cycler import cycler
 
 __all__ = [
@@ -13,8 +14,13 @@ __all__ = [
     "get_ldm_metadata",
     "get_coords",
     "load_leica_frames",
+    "load_srs_timelapse_dataset",
     "gogogo_dimension_data",
-    "leica_stczyx",
+    "stczyx",
+    "ldm_stczyx",
+    "ldm_stcrzyx",
+    "ldm_to_time",
+    "viridis_cycler",
 ]
 
 META_COLS = [
@@ -131,7 +137,7 @@ def get_coords(meta_df, dims='STCZYX', others=None):
     return coords
 
 
-def leica_stczyx(x):
+def stczyx(x):
     l = re.split(r"(\d+)", x.filename.split("/")[-1])[1:-1:2]
     l.pop(1)
     # s = pd.Series(l, index=ordered).astype(int)
@@ -140,14 +146,14 @@ def leica_stczyx(x):
     return s
 
 
-def leica_ldm_stczyx(x):
+def ldm_stczyx(x):
     l = re.split(r"(\d+)", x.filename.split("/")[-1])[1:-1:2]
     s = pd.Series(l, index=list("STZC")).astype(int)
     s[0] -= 1
     return s
 
 
-def leica_ldm_stcrzyx(x):
+def ldm_stcrzyx(x):
     l = re.split(r"(\d+)", x.filename.split('/')[-1])[1:-1:2]
     s = pd.Series(l, index=list("STRZC")).astype(int)
     s[0] -= 1
@@ -232,5 +238,5 @@ def load_srs_timelapse_dataset(data_dir):
     # combine into dataset and return
     return xr.Dataset({'srs': srs_data, 'fluo': fluo_data}).astype(srs_data.dtype)
 
-def virids_cycler(N):
+def viridis_cycler(N):
     return cycler(color=plt.cm.viridis(np.linspace(0.1,0.9,N)))
