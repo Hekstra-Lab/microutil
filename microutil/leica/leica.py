@@ -47,13 +47,13 @@ META_COLS = [
 
 def delay_to_wns(delay, wns_per_mm=228.17640641870852, ref_d=26.27009266, ref_wn=2905):
     """
-    Convert delay stage positions into Raman wavenumbers give a refernce point
+    Convert delay stage positions into Raman wavenumbers give a reference point
     and a conversion factor. Default was based on the spectrum of DMSO.
 
     Parameters
     ----------
     delay : np.array or float
-        Aarray containg delay stage positions.
+        Aarray containing delay stage positions.
     wns_per_mm : float, default 228.176
         Wavenumbers per millimeter of delay stage travel.
     ref_d : float, default 26.27
@@ -112,8 +112,8 @@ def ldm_meta_split(x):
 
     Returns
     -------
-    colums : pd.Series
-       Series containg the FOV, mode (srs or fluo), and image number from the LDM series.
+    columns : pd.Series
+        Series containing the FOV, mode (srs or fluo), and image number from the LDM series.
     """
     name = x.acq_name
     fov, mode, ldm_idx = re.split(r"(\d+)", name)[1:4]
@@ -127,7 +127,6 @@ def get_ldm_metadata(data_dir, meta_tag="_Properties.xml"):
     """
     Get metadata from and for leica single frame tiffs collected in live data mode.
     Assumes LDM jobs are titled according to Pos{fov#}_{mode}.
-
 
     Parameters
     ----------
@@ -280,15 +279,12 @@ def load_leica_frames(df, idx_mapper, coords=None, chunkby_dims='CZ'):
     ----------
     df : pandas.DataFrame
         Data frame containing data file names in a column called "filename".
-
     idx_mapper : callable or pandas.DataFrame
         Means to map data files to the correct dimension index. If
         callable will be used by df.apply. If dataframe, will be joined
         to df directly.
-
     coords : dict or None, default None
         Coordinates for the dataarray.
-
     chunkby_dims : str, default "CZ"
         Dimensions along which to chunk the dask array. XY will automatically
         be chunked together.
@@ -351,7 +347,7 @@ def load_srs_timelapse_dataset(data_dir):
     Returns
     -------
     data : xarray.Dataset
-        Dataset containg fluorescnence and srs data.
+        Dataset containing fluorescnence and srs data.
     """
     # glob the files
     srs_files = pd.DataFrame({"filename": sorted(glob.glob(data_dir + "*srs*z*.tif"))})
