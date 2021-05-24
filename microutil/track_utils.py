@@ -24,6 +24,7 @@ individually labelled cell masks in matplotlib.
 clipped_viridis = copy(plt.cm.viridis)
 clipped_viridis.set_under(alpha=0)
 
+
 def _reindex_labels(arr, min_area, inplace=None):
     ids, areas = np.unique(arr, return_counts=True)
     if not np.array_equal(np.arange(ids.max() + 1), ids) or (

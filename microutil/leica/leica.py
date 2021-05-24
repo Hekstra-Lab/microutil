@@ -49,7 +49,7 @@ def delay_to_wns(delay, wns_per_mm=228.17640641870852, ref_d=26.27009266, ref_wn
     """
     Convert delay stage positions into Raman wavenumbers give a refernce point
     and a conversion factor. Default was based on the spectrum of DMSO.
-    
+
     Parameters
     ----------
     delay : np.array or float
@@ -113,7 +113,7 @@ def ldm_meta_split(x):
     Returns
     -------
     colums : pd.Series
-       Series containg the FOV, mode (srs or fluo), and image number from the LDM series. 
+       Series containg the FOV, mode (srs or fluo), and image number from the LDM series.
     """
     name = x.acq_name
     fov, mode, ldm_idx = re.split(r"(\d+)", name)[1:4]
@@ -207,7 +207,7 @@ def get_coords(meta_df, dims='STCZYX', others=None):
     others : dict or None, default None
         Other coordinates for the dataset. Will be combined
         with coordinates retrieved from meta_df.
-    
+
     Returns
     -------
     coords : dict
