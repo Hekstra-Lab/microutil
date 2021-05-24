@@ -23,7 +23,6 @@ def cell_op(
     dims='STCZYX',
 ):
     """
-
     Parameters
     ----------
     ds : xarray.Dataset
@@ -41,8 +40,8 @@ def cell_op(
         Name for the dimension containing the individual cell labels in ds.
     cell_dim_name : str, default "CellID"
         Name for the dimension containing the data for each individual cell in the output array.
-    dims: str or list of str, default 'STCZYX`
-          Dimensions names for `ds` that correspond to STCZYX
+    dims : str or list of str, default 'STCZYX`
+        Dimensions names for `ds` that correspond to STCZYX
 
     Returns
     -------
@@ -101,9 +100,8 @@ def average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='ST
 
     Parameters
     ----------
-
-    dims: str or list of str, default 'STCZYX`
-          Dimensions names for `bf` that correspond to STCZYX
+    dims : str or list of str, default 'STCZYX`
+        Dimensions names for `bf` that correspond to STCZYX
     """
 
     def padded_mean(intensity, labels, Nmax=None):
@@ -121,7 +119,6 @@ def center_of_mass(ds, com_name='com', label_name='labels', cell_dim_name='CellI
     """
     Compute the center of mass of each labeled cell in a dataset.
 
-
     Parameters
     ----------
     ds : xarray.Dataset
@@ -132,8 +129,8 @@ def center_of_mass(ds, com_name='com', label_name='labels', cell_dim_name='CellI
         Name for the dimension containing the individual cell labels in ds.
     cell_dim_name : str, default "CellID"
         Name for the dimension containing the data for each individual cell in the output array.
-    dims: str or list of str, default 'STCZYX`
-          Dimensions names for `ds` that correspond to STCZYX
+    dims : str or list of str, default 'STCZYX`
+        Dimensions names for `ds` that correspond to STCZYX
 
     Returns
     -------
@@ -142,7 +139,7 @@ def center_of_mass(ds, com_name='com', label_name='labels', cell_dim_name='CellI
         Same shape and dims as ds except for YX which are replaced by cell_dim_name.
     """
     # TODO rescale com values according to XY coordinates of ds
-    # TODO low priority - write helper function somwhere for scattering coms on hyperslicer
+    # TODO low priority - write helper function for scattering coms on hyperslicer
 
     if isinstance(dims, str):
         S, T, C, Z, Y, X = list(dims)
@@ -196,8 +193,8 @@ def bootstrap(
         Name for the dimension containing the data for each individual cell in the output array.
     sample_name : str, default 'samples'
         Name for dimension containing the bootstrap samples in the output array.
-    dims: str or list of str, default 'STCZYX`
-          Dimensions names for `ds` that correspond to STCZYX
+    dims : str or list of str, default 'STCZYX`
+        Dimensions names for `ds` that correspond to STCZYX
 
     Returns
     -------
