@@ -5,6 +5,7 @@ __all__ = [
     "find_duplicate_labels",
     "find_bad_frames",
     "overlap",
+    "clipped_viridis",
 ]
 import numpy as np
 import xarray as xr
@@ -13,6 +14,15 @@ import matplotlib.pyplot as plt
 from ._names import POS, TIME
 from .array_utils import zeros_like, not_xr
 from skimage.segmentation import relabel_sequential
+from copy import copy
+
+
+"""
+clipped_virids is a useful colormap for looking at 
+individually labelled cell masks in matplotlib.
+"""
+clipped_viridis = copy(plt.cm.viridis)
+clipped_viridis.set_under(alpha=0)
 
 
 def _reindex_labels(arr, min_area, inplace=None):
