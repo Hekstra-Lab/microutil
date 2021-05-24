@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from cycler import cycler
 
 __all__ = [
+    "delay_to_wns",
     "get_standard_metadata",
     "get_ldm_metadata",
     "get_coords",
@@ -44,14 +45,49 @@ META_COLS = [
 ]
 
 
+def delay_to_wns(delay, wns_per_mm=228.17640641870852, ref_d=26.27009266, ref_wn=2905):
+    """
+    Convert delay stage positions into Raman wavenumbers give a refernce point
+    and a conversion factor. Default was based on the spectrum of DMSO.
+    
+    Parameters
+    ----------
+    delay : np.array or float
+        Aarray containg delay stage positions.
+    wns_per_mm : float, default 228.176
+        Wavenumbers per millimeter of delay stage travel.
+    ref_d : float, default 26.27
+        Reference delay stage position that corresponds to wavenumber ref_wn
+    ref_wn : float, default 2905
+        Reference wavenumber that corresponds to delay stage positiond ref_d
+
+    Returns
+    -------
+    wavenumbers : np.array or float
+        Raman wavenumbers corresponding to input delay positions
+
+    """
+    return wns_per_mm * (delay - ref_d) + ref_wn
+
+
 def get_standard_metadata(data_dir, meta_tag="_Properties.xml"):
     """
-    Get metadata from and for leica single frame tifs.
+    Get metadata from and for leica single frame tiffs collected in standard mode.
 
     Parameters
     ----------
+    data_dir : str
+        Directory containing (meta) data files.
+    meta_tag : str, default "_Properties.xml"
+        Ending for metadata files. The pattern data_dir + "*" + meta_tag
+        will get globbed for.
 
+    Returns
+    -------
+    metadata : pd.DataFrame
+        DataFrame containing metadata from each file found in data_dir.
     """
+
     metadata = pd.DataFrame(sorted(glob.glob(data_dir + '*' + meta_tag)), columns=["filename"])
     metadata["acq_name"] = metadata.filename.apply(
         lambda x: re.split(r"_Properties.xml", x.split('/')[-1])[0]
@@ -66,6 +102,19 @@ def get_standard_metadata(data_dir, meta_tag="_Properties.xml"):
 
 
 def ldm_meta_split(x):
+    """
+    Split out relevant numbers for LDM metadata filenames.
+
+    Parameters
+    ----------
+    x : filename
+        Metadate file name.
+
+    Returns
+    -------
+    colums : pd.Series
+       Series containg the FOV, mode (srs or fluo), and image number from the LDM series. 
+    """
     name = x.acq_name
     fov, mode, ldm_idx = re.split(r"(\d+)", name)[1:4]
     fov = int(fov) - 1
@@ -76,7 +125,22 @@ def ldm_meta_split(x):
 
 def get_ldm_metadata(data_dir, meta_tag="_Properties.xml"):
     """
-    This is somewhat bespoke. But it will work as long as LDM jobs are titled according to F{fov#}_{mode}
+    Get metadata from and for leica single frame tiffs collected in live data mode.
+    Assumes LDM jobs are titled according to Pos{fov#}_{mode}.
+
+
+    Parameters
+    ----------
+    data_dir : str
+        Directory containing (meta) data files.
+    meta_tag : str, default "_Properties.xml"
+        Ending for metadata files. The pattern data_dir + "*" + meta_tag
+        will get globbed for.
+
+    Returns
+    -------
+    metadata : pd.DataFrame
+        DataFrame containing metadata from each file found in data_dir.
     """
     metadata = pd.DataFrame(sorted(glob.glob(data_dir + "*" + meta_tag)), columns=["filename"])
     metadata["acq_name"] = metadata.filename.str.split("/").apply(
@@ -88,6 +152,21 @@ def get_ldm_metadata(data_dir, meta_tag="_Properties.xml"):
 
 
 def gogogo_dimension_data(entry):
+    """
+    Parse data describing the length of each of the dimensions (TCZYX)
+    in the file from a given row of dataframe.
+
+    Parameters
+    ----------
+    entry : pd.DataFrame
+        Row of a pandas dataframe
+
+    Returns
+    -------
+    entry : pd.Series (?)
+        Should be called by dataframe.apply so this will update
+        columns of the calling dataframe.
+    """
     parsed = ET.parse(entry.filename)
     for x in parsed.iter("TimeStampList"):
         d, t, ms = x.attrib.values()
@@ -121,7 +200,18 @@ def get_coords(meta_df, dims='STCZYX', others=None):
 
     Parameters
     ----------
-
+    meta_df : pandas.DataFrame
+        Metadata dataframe to get coordinates from.
+    dims : str or list of str, default "STCZYX"
+        Dimension names to which coordinates are assigned.
+    others : dict or None, default None
+        Other coordinates for the dataset. Will be combined
+        with coordinates retrieved from meta_df.
+    
+    Returns
+    -------
+    coords : dict
+        Dictionary mapping dimension names to coordinates.
     """
     coords = {}
     if 'S' in dims:
@@ -138,6 +228,9 @@ def get_coords(meta_df, dims='STCZYX', others=None):
 
 
 def stczyx(x):
+    """
+    Parse multiposition, time lapse, z stack filenames into dimension indices.
+    """
     l = re.split(r"(\d+)", x.filename.split("/")[-1])[1:-1:2]
     l.pop(1)
     # s = pd.Series(l, index=ordered).astype(int)
@@ -147,6 +240,10 @@ def stczyx(x):
 
 
 def ldm_stczyx(x):
+    """
+    Parse multi position, time lapse, z stack filenames from LDM acquisitions
+    into dimension indices.
+    """
     l = re.split(r"(\d+)", x.filename.split("/")[-1])[1:-1:2]
     s = pd.Series(l, index=list("STZC")).astype(int)
     s[0] -= 1
@@ -154,6 +251,10 @@ def ldm_stczyx(x):
 
 
 def ldm_stcrzyx(x):
+    """
+    Parse multi position, time lapse, z stack, SRS filenames from LDM acquisitions
+    into dimension indices.
+    """
     l = re.split(r"(\d+)", x.filename.split('/')[-1])[1:-1:2]
     s = pd.Series(l, index=list("STRZC")).astype(int)
     s[0] -= 1
@@ -161,6 +262,9 @@ def ldm_stcrzyx(x):
 
 
 def ldm_to_time(inds):
+    """
+    Relabel LDM indices to time indices.
+    """
     mapper = pd.Series(dtype='uint16')
     for i, s in inds.groupby('S'):
         mapper = mapper.append(pd.Series(data=np.arange(s['T'].nunique()), index=s['T'].unique()))
@@ -169,7 +273,31 @@ def ldm_to_time(inds):
 
 
 def load_leica_frames(df, idx_mapper, coords=None, chunkby_dims='CZ'):
+    """
+    Lazily load single image leica tiffs into an xarray.DataArray.
 
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Data frame containing data file names in a column called "filename".
+
+    idx_mapper : callable or pandas.DataFrame
+        Means to map data files to the correct dimension index. If
+        callable will be used by df.apply. If dataframe, will be joined
+        to df directly.
+
+    coords : dict or None, default None
+        Coordinates for the dataarray.
+
+    chunkby_dims : str, default "CZ"
+        Dimensions along which to chunk the dask array. XY will automatically
+        be chunked together.
+
+    Returns
+    -------
+    x_data : xarry.DataArray
+        Dask backed data array containing leica images. Will have STCZYX dims.
+    """
     if callable(idx_mapper):
         df = df.join(df.apply(idx_mapper, axis=1, result_type='expand'))
     elif isinstance(idx_mapper, pd.DataFrame):
@@ -212,7 +340,18 @@ def load_leica_frames(df, idx_mapper, coords=None, chunkby_dims='CZ'):
 
 def load_srs_timelapse_dataset(data_dir):
     """
-    This essentially assumes that files are named according to `Pos{S}_{mode}{ldm_idx}_t{R}_z{Z}_ch{C}.tif`
+    Read files from data_dir into a dask backed xarray Dataset. Assumes that
+    files are named according to `Pos{S}_{mode}{ldm_idx}_t{R}_z{Z}_ch{C}.tif`
+
+    Parameters
+    ----------
+    data_dir : str
+        Path to directory containing image and metadata files.
+
+    Returns
+    -------
+    data : xarray.Dataset
+        Dataset containg fluorescnence and srs data.
     """
     # glob the files
     srs_files = pd.DataFrame({"filename": sorted(glob.glob(data_dir + "*srs*z*.tif"))})
@@ -238,5 +377,6 @@ def load_srs_timelapse_dataset(data_dir):
     # combine into dataset and return
     return xr.Dataset({'srs': srs_data, 'fluo': fluo_data}).astype(srs_data.dtype)
 
+
 def viridis_cycler(N):
-    return cycler(color=plt.cm.viridis(np.linspace(0.1,0.9,N)))
+    return cycler(color=plt.cm.viridis(np.linspace(0.1, 0.9, N)))
