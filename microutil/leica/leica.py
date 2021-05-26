@@ -354,9 +354,9 @@ def load_srs_timelapse_dataset(data_dir):
     fluo_files = pd.DataFrame({"filename": sorted(glob.glob(data_dir + "*fluo*z*.tif"))})
 
     # parse filenames -> indices
-    srs_inds = srs_files.apply(leica_ldm_stcrzyx, axis=1, result_type='expand')
+    srs_inds = srs_files.apply(ldm_stcrzyx, axis=1, result_type='expand')
     ldm_to_time(srs_inds)
-    fluo_inds = fluo_files.apply(leica_ldm_stczyx, axis=1, result_type='expand')
+    fluo_inds = fluo_files.apply(ldm_stczyx, axis=1, result_type='expand')
     ldm_to_time(fluo_inds)
 
     # parse metadata -> coords
