@@ -362,7 +362,7 @@ def load_srs_timelapse_dataset(data_dir):
     # parse metadata -> coords
     metadata = get_ldm_metadata(data_dir + "/Pos*")
     f_coords = get_coords(
-        metadata.loc[metadata['mode'] == 'fluo'], 'SZYX', {'C': ['GFP', 'mCherry', 'BF']}
+        metadata.loc[metadata['mode'] == 'fluo'], 'SZYX', #{'C': ['GFP', 'mCherry', 'BF']}
     )
     s_coords = get_coords(metadata.loc[metadata['mode'] == 'srs'], 'SZYX', {'C': ['BF', 'SRS']})
 
@@ -371,7 +371,7 @@ def load_srs_timelapse_dataset(data_dir):
     fluo_data = load_leica_frames(fluo_files, fluo_inds, coords=f_coords)
 
     # combine into dataset and return
-    return xr.Dataset({'srs': srs_data, 'fluo': fluo_data}).astype(srs_data.dtype)
+    return xr.Dataset({'srs': srs_data, 'fluo': fluo_data})#.astype(srs_data.dtype)
 
 
 def viridis_cycler(N):
