@@ -27,7 +27,8 @@ except ImportError:
 
 def scroll_time(viewer, time_axis=1):
     def scroll_callback(layer, event):
-        if "Shift" in event.modifiers:
+        modifiers = [key.name for key in event.modifiers]
+        if "Shift" in modifiers:
             new = list(viewer.dims.current_step)
 
             # get the max time
@@ -149,14 +150,14 @@ def manual_segmentation(img, mask=None, time_axis='T'):
         mask = np.array(mask)
 
     time_axis = axis2int(img, axis=time_axis, fallthrough=0)
-    with napari.gui_qt():
-        # create the viewer and add the cells image
-        viewer = napari.view_image(img, name="cells")
-        # add the labels
-        labels = viewer.add_labels(mask, name="segmentation")
-        # Add more keybinds for better ergonomics
-        apply_label_keybinds(labels)
-        scroll_time(viewer)
+    # create the viewer and add the cells image
+    viewer = napari.view_image(img, name="cells")
+    # add the labels
+    labels = viewer.add_labels(mask, name="segmentation")
+    # Add more keybinds for better ergonomics
+    apply_label_keybinds(labels)
+    scroll_time(viewer, time_axis=time_axis)
+    napari.run()
 
     if isinstance(img, xr.DataArray):
         return xr.DataArray(labels.data, coords=img.coords, dims=img.dims)
@@ -205,7 +206,7 @@ def correct_watershed(ds):
     points = viewer.add_points(peak_mask_to_napari_points(ds['peak_mask']), size=1)
     apply_label_keybinds(labels)
     apply_label_keybinds(mask)
-    scroll_time(viewer)
+    scroll_time(viewer, time_axis=1)
     apply_points_keybinds(points)
 
     through_time = False
@@ -414,7 +415,7 @@ def correct_decreasing_cell_frames(ds, bad_frames=None, extra_labels=None):
     labels.selected = True
 
     apply_label_keybinds(labels)
-    scroll_time(viewer)
+    scroll_time(viewer, time_axis=1)
     viewer.bind_key('Control-Shift-d', check_all)
 
     def on_close(*args, **kwargs):
