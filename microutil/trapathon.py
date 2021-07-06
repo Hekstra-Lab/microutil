@@ -104,6 +104,9 @@ def angular_offset(bf, dims='STCZYX', **kwargs):
 
 
 def rotate(ds, angles, dims='STCZYX', **kwargs):
+    """
+    Wrap scipy.ndimage.rotate to vectorize over frames of xr.Datset.
+    """
     if isinstance(dims, str):
         S, T, C, Z, Y, X = list(dims)
     elif isinstance(dims, list):
@@ -125,6 +128,21 @@ def rotate(ds, angles, dims='STCZYX', **kwargs):
 
 
 def crop(ds, angles, dims='STCYZX'):
+    """
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Datset containing image data to be cropped.
+    angles : xr.DataArray
+        Rotation angle which will be accounted for in crop.
+    dims: str or list of str, default 'STCZYX`
+        Dimensions names for `bf` that correspond to STCZYX
+
+    Returns
+    -------
+    cropped : xr.Dataset
+        Dataset cropped to remove edge effects of rotating by angle.
+    """
     slopes = np.tan(angles)
     crops_y = np.ceil(np.max(ds.sizes['Y'] * np.abs(slopes))).astype(int).item()
     crops_x = np.ceil(np.max(ds.sizes['X'] * np.abs(slopes))).astype(int).item()
@@ -132,6 +150,27 @@ def crop(ds, angles, dims='STCYZX'):
 
 
 def pad_find_peaks(trace, distance, prominence, pad=40):
+    """
+    Wrap scipy.signal.find_peaks to return peak locations padded with -1
+    in order to be used in arrays.
+
+    Parameters
+    ----------
+
+    trace : 1D array like
+       Signal in which to locate peaks
+    distance : float
+        Minimum distance between peaks. Passed directly to find_peaks
+    prominence : float
+        Minimum prominence of each peak. Passed directly to find_peaks.
+    pad : int default 40
+        Number of elements in final array.
+
+    Returns
+    -------
+    padded : 1D array like
+        Array with peak locations padded on the right with -1s.
+    """
     peaks = find_peaks(trace.copy(), distance=distance, prominence=prominence)[0]
     padded = np.pad(peaks, (0, pad - peaks.shape[0]), constant_values=-1)
     return padded
@@ -151,6 +190,30 @@ def trench_ripper(
     """
     Take in full fovs. Identify trenches and split them out.
     Then center each trench in its frame and crop.
+
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+       Dataset containing at least brightfield images.
+    out_width : int, default 60
+        Width of final, single trap images in pixels
+    out_height : int, default 150
+        Height of final single trap images in pixels
+    trap_width : int default 10
+        Approximate width of an individual trap in pixels.
+    prominence : float default 0.017
+        Prominence of peaks in image edges. Passed to find_peaks_cwt
+    edges : None or DataArray
+        If None, edges will be computed with a sobel filter. If edges have been
+        pre computed they can be passed here.
+    image_name : str default 'images'
+        Variable name in ds that corresponds to image data.
+    bf_name : str default 'BF'
+        Coordinate value within the images data variable that corresponds to BF images.
+    dims: str or list of str, default 'STCZYX`
+      Dimensions names for `bf` that correspond to STCZYX
+
     """
     if isinstance(dims, str):
         S, T, C, Z, Y, X = list(dims)
@@ -219,6 +282,36 @@ def fine_trench_rip(
     bf_name='BF',
     dims='STCZYX',
 ):
+    """
+    Second pass over the ripped trenches to more carefully center the trenches in the field.
+
+    Parameters
+    ----------
+    tr : xr.Dataset
+       Dataset containing views of individual trenches. Should be the output of trench_ripper.
+    out_width : int, default 60
+        Width of final, single trap images in pixels
+    out_height : int, default 150
+        Height of final single trap images in pixels
+    trap_width : int default 10
+        Approximate width of an individual trap in pixels.
+    prominence : float default 0.017
+        Prominence of peaks in image edges. Passed to find_peaks_cwt
+    edges : None or DataArray
+        If None, edges will be computed with a sobel filter. If edges have been
+        pre computed they can be passed here.
+    image_name : str default 'images'
+        Variable name in ds that corresponds to image data.
+    bf_name : str default 'BF'
+        Coordinate value within the images data variable that corresponds to BF images.
+    dims: str or list of str, default 'STCZYX`
+      Dimensions names for `bf` that correspond to STCZYX
+    
+    Returns
+    -------
+    Y_lims, X_lims : DataArray
+        Y and X limits of each frame to center the trench in the frame.
+    """
     if isinstance(dims, str):
         S, T, C, Z, Y, X = list(dims)
     else:
@@ -317,8 +410,21 @@ def gogogo_trapathon(
        Dataset containing at least brightfield images.
     out_width : int, default 60
         Width of final, single trap images in pixels
-
-
+    out_height : int, default 150
+        Height of final single trap images in pixels
+    trap_width : int default 10
+        Approximate width of an individual trap in pixels.
+    prominence : float default 0.017
+        Prominence of peaks in image edges. Passed to find_peaks_cwt
+    edges : None or DataArray
+        If None, edges will be computed with a sobel filter. If edges have been
+        pre computed they can be passed here.
+    image_name : str default 'images'
+        Variable name in ds that corresponds to image data.
+    bf_name : str default 'BF'
+        Coordinate value within the images data variable that corresponds to BF images.
+    dims: str or list of str, default 'STCZYX`
+      Dimensions names for `bf` that correspond to STCZYX
 
     Returns
     -------
