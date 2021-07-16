@@ -1,4 +1,4 @@
-__all__: [
+__all__ = [
     "manual_segmentation",
     "correct_watershed",
     "correct_decreasing_cell_frames",
