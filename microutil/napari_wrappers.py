@@ -3,17 +3,18 @@ __all__ = [
     "correct_watershed",
     "correct_decreasing_cell_frames",
 ]
+import warnings
+
 import numpy as np
 import xarray as xr
-import warnings
+
 from .array_utils import axis2int
 from .segmentation import (
-    watershed_single_frame_preseeded,
-    peak_mask_to_napari_points,
     napari_points_to_peak_mask,
+    peak_mask_to_napari_points,
+    watershed_single_frame_preseeded,
 )
-from .track_utils import reindex_labels, find_bad_frames
-from skimage.segmentation import relabel_sequential
+from .track_utils import find_bad_frames
 
 try:
     import napari

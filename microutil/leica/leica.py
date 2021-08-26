@@ -1,12 +1,13 @@
-import numpy as np
-import pandas as pd
-import xarray as xr
-import dask.array as da
-import tifffile as tiff
 import glob
 import re
 import xml.etree.ElementTree as ET
+
+import dask.array as da
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import tifffile as tiff
+import xarray as xr
 from cycler import cycler
 
 __all__ = [
@@ -175,7 +176,7 @@ def gogogo_dimension_data(entry):
         entry[f'{a["DimID"].lower()}_origin'] = float(re.sub("[^0-9.]", "", a["Origin"]))
         if a["DimID"] == "T":
             try:
-                h, m, s = [float(x) for x in re.split(r"(\d+)h(\d+)m([0-9.]+)", a["Length"])[1:-1]]
+                h, m, s = (float(x) for x in re.split(r"(\d+)h(\d+)m([0-9.]+)", a["Length"])[1:-1])
                 entry[f'{a["DimID"].lower()}_length'] = s + 60 * (m + 60 * h)
             except:
                 entry[f'{a["DimID"].lower()}_length'] = None
@@ -362,7 +363,8 @@ def load_srs_timelapse_dataset(data_dir):
     # parse metadata -> coords
     metadata = get_ldm_metadata(data_dir + "/Pos*")
     f_coords = get_coords(
-        metadata.loc[metadata['mode'] == 'fluo'], 'SZYX', #{'C': ['GFP', 'mCherry', 'BF']}
+        metadata.loc[metadata['mode'] == 'fluo'],
+        'SZYX',  # {'C': ['GFP', 'mCherry', 'BF']}
     )
     s_coords = get_coords(metadata.loc[metadata['mode'] == 'srs'], 'SZYX', {'C': ['BF', 'SRS']})
 
@@ -371,7 +373,7 @@ def load_srs_timelapse_dataset(data_dir):
     fluo_data = load_leica_frames(fluo_files, fluo_inds, coords=f_coords)
 
     # combine into dataset and return
-    return xr.Dataset({'srs': srs_data, 'fluo': fluo_data})#.astype(srs_data.dtype)
+    return xr.Dataset({'srs': srs_data, 'fluo': fluo_data})  # .astype(srs_data.dtype)
 
 
 def viridis_cycler(N):

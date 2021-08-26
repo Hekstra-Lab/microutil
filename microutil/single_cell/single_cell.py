@@ -5,11 +5,12 @@ __all__ = [
     "bootstrap",
 ]
 
+import warnings
+
 import numpy as np
 import pandas as pd
-import xarray as xr
-import warnings
 import scipy.ndimage as ndi
+import xarray as xr
 
 
 def cell_op(

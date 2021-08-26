@@ -12,19 +12,17 @@ __all__ = [
 # on macOS big sur napari only works on  python 3.9.0
 # So two envs are needed for mac users (e.g. indrani)
 # this allows importing this file from either env.
-import warnings
 
 
 import numpy as np
-import xarray as xr
-import dask.array as da
 import scipy.ndimage as ndi
-from scipy.spatial.distance import cdist
+import xarray as xr
 from skimage.exposure import equalize_adapthist
-from skimage.filters import threshold_isodata
 from skimage.feature import peak_local_max
+from skimage.filters import threshold_isodata
 from skimage.morphology import label
-from skimage.segmentation import watershed, relabel_sequential
+from skimage.segmentation import watershed
+
 from .track_utils import _reindex_labels
 
 
@@ -204,7 +202,7 @@ def peak_mask_to_napari_points(peak_mask):
     points_transformed = np.hstack(
         [
             a.ravel()[:, None]
-            for a in np.meshgrid(*[np.arange(s) for s in points.shape[:-1]], indexing="ij")
+            for a in np.meshgrid(*(np.arange(s) for s in points.shape[:-1]), indexing="ij")
         ]
         + [points.reshape((N, 2))]
     )[:, [0, 1, 3, 4]]

@@ -1,7 +1,8 @@
-import zarr
 import os
 from pathlib import Path
+
 import xarray as xr
+import zarr
 
 dir_ = Path(os.path.abspath(__file__)).parent
 

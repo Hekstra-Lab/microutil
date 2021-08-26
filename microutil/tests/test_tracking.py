@@ -1,7 +1,9 @@
-from microutil.tracking import track
-import microutil as mu
 import numpy as np
 import xarray as xr
+
+import microutil as mu
+from microutil.tracking import track
+
 from .utils import load_zarr, open_zarr
 
 

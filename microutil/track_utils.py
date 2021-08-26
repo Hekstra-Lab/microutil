@@ -7,18 +7,19 @@ __all__ = [
     "overlap",
     "clipped_viridis",
 ]
-import numpy as np
-import xarray as xr
-import ipywidgets as widgets
-import matplotlib.pyplot as plt
-from ._names import POS, TIME
-from .array_utils import zeros_like, not_xr
-from skimage.segmentation import relabel_sequential
 from copy import copy
 
+import ipywidgets as widgets
+import matplotlib.pyplot as plt
+import numpy as np
+import xarray as xr
+from skimage.segmentation import relabel_sequential
+
+from ._names import POS, TIME
+from .array_utils import not_xr, zeros_like
 
 """
-clipped_virids is a useful colormap for looking at 
+clipped_virids is a useful colormap for looking at
 individually labelled cell masks in matplotlib.
 """
 clipped_viridis = copy(plt.cm.viridis)
