@@ -18,10 +18,8 @@ from skimage.segmentation import relabel_sequential
 from ._names import POS, TIME
 from .array_utils import not_xr, zeros_like
 
-"""
-clipped_virids is a useful colormap for looking at
-individually labelled cell masks in matplotlib.
-"""
+# clipped_virids is a useful colormap for looking at
+# individually labelled cell masks in matplotlib.
 clipped_viridis = copy(plt.cm.viridis)
 clipped_viridis.set_under(alpha=0)
 
