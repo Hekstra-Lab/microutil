@@ -12,9 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
-      - uses: psf/black@stable
-        with:
-          args: ". --check --line-length=100"
       - name: docstrings
         run: |
           pip install flit
