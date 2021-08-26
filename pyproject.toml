@@ -2,6 +2,17 @@
 skip-string-normalization = true
 line-length = 100
 
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.pydocstyle]
+match_dir = "reciprocalspaceship"
+convention = "numpy"
+add_select = ["D402","D415","D417"]
+
+
+
 [tool.pytest.ini_options]
 testpaths = [
     "microutil/tests"
