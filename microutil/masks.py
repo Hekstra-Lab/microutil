@@ -2,9 +2,9 @@ __all__ = [
     "roi_to_mask",
     "process_oval",
 ]
+import numpy as np
 from read_roi import read_roi_zip
 from skimage import draw
-import numpy as np
 
 
 def process_oval(info, arr):

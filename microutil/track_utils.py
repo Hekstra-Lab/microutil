@@ -206,7 +206,7 @@ def check_cell_numbers(BF, mask, check_after=True, correct=True, bad_frames=None
                     bad_frames.append((i, j))
         return bad_frames
 
-    def _empty_check(l): # noqa E741
+    def _empty_check(l):  # noqa E741
         if len(l) == 0:
             return None
         else:
@@ -264,6 +264,7 @@ def find_duplicate_labels(frame):
     slider.observe(update, names='value')
     try:
         from IPython.display import display
+
         display(slider)
     except ImportError:
         pass

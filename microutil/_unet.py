@@ -4,7 +4,6 @@ which is under the MIT license.
 """
 # Import tensorflow differently depending on version
 from tensorflow import __version__ as tf_version
-
 from tensorflow.keras.layers import (
     Conv2D,
     Dropout,
