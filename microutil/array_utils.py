@@ -3,9 +3,9 @@ __all__ = [
     "not_xr",
     "axis2int",
 ]
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
 import zarr
 
 

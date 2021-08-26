@@ -4,29 +4,24 @@ which is under the MIT license.
 """
 # Import tensorflow differently depending on version
 from tensorflow import __version__ as tf_version
-
-tf_version_old = int(tf_version[0]) <= 1
-
-from tensorflow.keras.models import Model
 from tensorflow.keras.layers import (
-    Input,
     Conv2D,
-    MaxPooling2D,
     Dropout,
-    concatenate,
+    Input,
+    MaxPooling2D,
     UpSampling2D,
+    concatenate,
 )
+from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
 # from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
 
-if tf_version_old:
-    from tensorflow import ConfigProto
-    from tensorflow import InteractiveSession
+if int(tf_version[0]) <= 1:
+    from tensorflow import ConfigProto, InteractiveSession
 
 else:
-    from tensorflow.compat.v1 import ConfigProto
-    from tensorflow.compat.v1 import InteractiveSession
+    from tensorflow.compat.v1 import ConfigProto, InteractiveSession
 
 config = ConfigProto()
 config.gpu_options.allow_growth = True

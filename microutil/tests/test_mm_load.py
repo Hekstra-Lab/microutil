@@ -1,8 +1,9 @@
-import dask.array as da
-from microutil.loading import load_mm_frames
-from .utils import load_zarr
-from pathlib import Path
 import os
+from pathlib import Path
+
+import dask.array as da
+
+from microutil.loading import load_mm_frames
 
 dir_ = Path(os.path.abspath(__file__)).parent
 

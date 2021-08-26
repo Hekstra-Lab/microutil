@@ -1,8 +1,9 @@
 import numpy as np
 import xarray as xr
-from microutil.track_utils import reindex
-from .utils import load_zarr
 
+from microutil.track_utils import reindex
+
+from .utils import load_zarr
 
 input = np.array(
     [

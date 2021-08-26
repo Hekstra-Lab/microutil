@@ -1,13 +1,13 @@
-import tifffile
+import glob
+import json
+import os
+import re
+
 import dask.array as da
-import xarray as xr
 import numpy as np
 import pandas as pd
-import dask.array as da
-import os
-import glob
-import re
-import json
+import tifffile
+import xarray as xr
 
 __all__ = [
     "micromanager_metadata_to_coords",
@@ -57,7 +57,7 @@ def micromanager_metadata_to_coords(summary, n_times=None, z_centered=True):
     if z_centered:
         if len(z) % 2 == 0:
             raise ValueError(
-                f"There are an even number of z points ({len(Z)}) so z_centered cannot be True"
+                f"There are an even number of z points ({len(z)}) so z_centered cannot be True"
             )
         z -= z[int(len(z) / 2 - 0.5)]
 
@@ -154,7 +154,7 @@ def load_mm_frames(
     if data_dir is None and glob_pattern is None:
         raise ValueError("Must specify data_dir or glob_pattern")
 
-    position_dirs = sorted([f.path for f in os.scandir(data_dir) if f.is_dir()])
+    position_dirs = sorted(f.path for f in os.scandir(data_dir) if f.is_dir())
 
     if len(position_dirs) == 0 and glob_pattern is None:
         raise ValueError("No subdirectories found and no glob pattern provided")
@@ -211,7 +211,7 @@ def load_mm_frames(
 
     chunks = np.expand_dims(chunks, tuple(range(-1, -len(chunkby_dims) - 3, -1)))
 
-    d_data = da.block(chunks.tolist())
+    da.block(chunks.tolist())
 
     x_data = xr.DataArray(da.block(chunks.tolist()), dims=group_dims + chunkby_dims + ['Y', 'X'])
 

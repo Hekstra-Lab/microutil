@@ -1,7 +1,5 @@
 from microutil.segmentation import individualize
-import microutil as mu
-import numpy as np
-import xarray as xr
+
 from .utils import open_zarr
 
 

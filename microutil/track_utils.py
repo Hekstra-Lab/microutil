@@ -7,20 +7,19 @@ __all__ = [
     "overlap",
     "clipped_viridis",
 ]
-import numpy as np
-import xarray as xr
-import ipywidgets as widgets
-import matplotlib.pyplot as plt
-from ._names import POS, TIME
-from .array_utils import zeros_like, not_xr
-from skimage.segmentation import relabel_sequential
 from copy import copy
 
+import ipywidgets as widgets
+import matplotlib.pyplot as plt
+import numpy as np
+import xarray as xr
+from skimage.segmentation import relabel_sequential
 
-"""
-clipped_virids is a useful colormap for looking at 
-individually labelled cell masks in matplotlib.
-"""
+from ._names import POS, TIME
+from .array_utils import not_xr, zeros_like
+
+# clipped_virids is a useful colormap for looking at
+# individually labelled cell masks in matplotlib.
 clipped_viridis = copy(plt.cm.viridis)
 clipped_viridis.set_under(alpha=0)
 
@@ -68,9 +67,7 @@ def _process_dims(dims, names):
     i : int
         The index in dims
     """
-    if isinstance(names, str) and (names in arr.dims):
-        return arr.dims.index(names)
-    elif isinstance(names, int):
+    if isinstance(names, int):
         return names
     for i, d in enumerate(dims):
         if d.lower() in names:
@@ -209,7 +206,7 @@ def check_cell_numbers(BF, mask, check_after=True, correct=True, bad_frames=None
                     bad_frames.append((i, j))
         return bad_frames
 
-    def _empty_check(l):
+    def _empty_check(l):  # noqa E741
         if len(l) == 0:
             return None
         else:
@@ -265,7 +262,12 @@ def find_duplicate_labels(frame):
         fig.canvas.draw()
 
     slider.observe(update, names='value')
-    display(slider)
+    try:
+        from IPython.display import display
+
+        display(slider)
+    except ImportError:
+        pass
 
 
 def find_bad_frames(ds, reindex=True):

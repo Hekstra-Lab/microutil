@@ -5,12 +5,12 @@ __all__ = [
     "track",
 ]
 
+import numpy as np
 import scipy
 from scipy import ndimage as ndi
 from scipy.optimize import linear_sum_assignment
-import numpy as np
-import xarray as xr
-from .track_utils import _reindex_labels, reindex, overlap
+
+from .track_utils import _reindex_labels, overlap, reindex
 
 
 def norm(prev, curr):
