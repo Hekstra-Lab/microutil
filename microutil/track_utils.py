@@ -69,9 +69,7 @@ def _process_dims(dims, names):
     i : int
         The index in dims
     """
-    if isinstance(names, str) and (names in arr.dims):
-        return arr.dims.index(names)
-    elif isinstance(names, int):
+    if isinstance(names, int):
         return names
     for i, d in enumerate(dims):
         if d.lower() in names:
@@ -266,7 +264,11 @@ def find_duplicate_labels(frame):
         fig.canvas.draw()
 
     slider.observe(update, names='value')
-    display(slider)
+    try:
+        from IPython.display import display
+        display(slider)
+    except ImportError:
+        pass
 
 
 def find_bad_frames(ds, reindex=True):

@@ -52,33 +52,30 @@ def scroll_time(viewer, time_axis=1):
 
 def apply_label_keybinds(labels):
     @labels.bind_key("q")
-    def paint_mode(viewer):
+    def paint_mode(viewer): # noqa: F811
         labels.mode = "erase"
 
     @labels.bind_key("w")
-    def paint_mode(viewer):
+    def paint_mode(viewer): # noqa: F811
         labels.mode = "fill"
 
     @labels.bind_key("s")
-    def paint_mode(viewer):
+    def paint_mode(viewer): # noqa: F811
         labels.selected_label = 0
         labels.mode = "fill"
 
     @labels.bind_key("e")
-    def paint_mode(viewer):
+    def paint_mode(viewer): # noqa: F811
         labels.mode = "paint"
 
     @labels.bind_key("r")
-    def paint_mode(viewer):
+    def paint_mode(viewer): # noqa: F811
         labels.mode = "pick"
 
     @labels.bind_key("t")
-    def new_cell(viewer):
+    def new_cell(viewer): # noqa: F811
         labels.selected_label = labels.data.max() + 1
 
-    # scrolling in paint mode changes the brush size
-    # shift-scroll changes the time point
-    time_axis = 1
 
     def scroll_callback(layer, event):
         if len(event.modifiers) == 0 and labels.mode in ["paint", "erase"]:
@@ -214,7 +211,7 @@ def correct_watershed(ds):
 
     def setup_through_time(layer):
         old_paint = layer.paint
-        old_fill = layer.fill
+        # old_fill = layer.fill
 
         def paint_through_time(coord, new_label, refresh=True):
             if through_time:
@@ -393,7 +390,7 @@ def correct_decreasing_cell_frames(ds, bad_frames=None, extra_labels=None):
         Because the reshape of the original values makes a copy rather than a view :(
         so standard in place editing doesn't work
         """
-        indiv = ds['labels'].values[:][tuple(s_idx), tuple(t_idx)] = labels.data.reshape(
+        ds['labels'].values[:][tuple(s_idx), tuple(t_idx)] = labels.data.reshape(
             len(t_idx), *labels.data.shape[-2:]
         )
 

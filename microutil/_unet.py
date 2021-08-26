@@ -5,8 +5,6 @@ which is under the MIT license.
 # Import tensorflow differently depending on version
 from tensorflow import __version__ as tf_version
 
-tf_version_old = int(tf_version[0]) <= 1
-
 from tensorflow.keras.layers import (
     Conv2D,
     Dropout,
@@ -20,7 +18,7 @@ from tensorflow.keras.optimizers import Adam
 
 # from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
 
-if tf_version_old:
+if int(tf_version[0]) <= 1:
     from tensorflow import ConfigProto, InteractiveSession
 
 else:

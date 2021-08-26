@@ -1,3 +1,4 @@
+# flake8: noqa E741
 import glob
 import re
 import xml.etree.ElementTree as ET
@@ -232,9 +233,8 @@ def stczyx(x):
     Parse multiposition, time lapse, z stack filenames into dimension indices.
     """
     l = re.split(r"(\d+)", x.filename.split("/")[-1])[1:-1:2]
-    l.pop(1)
-    # s = pd.Series(l, index=ordered).astype(int)
-    s = pd.Series(l, index=list("STZC")).astype(int)
+    l.pop(1) 
+    s = pd.Series(l, index=list("STZC")).astype(int) 
     s[0] -= 1
     return s
 

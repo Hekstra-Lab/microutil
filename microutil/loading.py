@@ -57,7 +57,7 @@ def micromanager_metadata_to_coords(summary, n_times=None, z_centered=True):
     if z_centered:
         if len(z) % 2 == 0:
             raise ValueError(
-                f"There are an even number of z points ({len(Z)}) so z_centered cannot be True"
+                f"There are an even number of z points ({len(z)}) so z_centered cannot be True"
             )
         z -= z[int(len(z) / 2 - 0.5)]
 
