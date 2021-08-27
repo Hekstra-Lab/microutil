@@ -124,7 +124,7 @@ def load_image_sequence(filenames, z_centered=True, pattern=None, coords=None):
 
 def load_mm_frames(
     data_dir: str,
-    position_folder_regex: str ="Pos[0-9]+",
+    position_folder_regex: str = "Pos[0-9]+",
     filename_regex=r".+\.tif{1,2}",
     chunkby_dims=['C', 'Z'],
     z_centered=True,
@@ -164,15 +164,17 @@ def load_mm_frames(
     pos_reg = re.compile(f"{data_dir.rstrip('/')}/" + position_folder_regex)
     fname_reg = re.compile(filename_regex)
 
-    position_dirs = sorted(f.path for f in os.scandir(data_dir) if f.is_dir() and pos_reg.match(f.path))
+    position_dirs = sorted(
+        f.path for f in os.scandir(data_dir) if f.is_dir() and pos_reg.match(f.path)
+    )
 
     def dir_to_df(dir):
-        fseries = pd.Series(sorted(filter(fname_reg.match, glob.glob(dir.rstrip("/")+"/*"))))
+        fseries = pd.Series(sorted(filter(fname_reg.match, glob.glob(dir.rstrip("/") + "/*"))))
         df = pd.DataFrame({'filename': fseries})
         df[['C', 'S', 'T', 'Z']] = df.apply(
-            lambda x: re.split(
-                r'img_channel(\d+)_position(\d+)_time(\d+)_z(\d+).tif', x.filename
-            )[1:-1],
+            lambda x: re.split(r'img_channel(\d+)_position(\d+)_time(\d+)_z(\d+).tif', x.filename)[
+                1:-1
+            ],
             axis=1,
             result_type='expand',
         )
@@ -180,7 +182,7 @@ def load_mm_frames(
 
     if len(position_dirs) > 0:
         for i, pos in enumerate(position_dirs):
-            fseries = pd.Series(sorted(filter(fname_reg.match, glob.glob(pos+"/*"))))
+            fseries = pd.Series(sorted(filter(fname_reg.match, glob.glob(pos + "/*"))))
             df = pd.DataFrame({'filename': fseries})
             df[['C', 'S', 'T', 'Z']] = df.apply(
                 lambda x: re.split(
