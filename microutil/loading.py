@@ -123,7 +123,12 @@ def load_image_sequence(filenames, z_centered=True, pattern=None, coords=None):
 
 
 def load_mm_frames(
-    data_dir, glob_pattern=None, chunkby_dims=['C', 'Z'], z_centered=True, coords=None
+    data_dir: str,
+    position_folder_regex: str ="Pos[0-9]+",
+    filename_regex=r".+\.tif{1,2}",
+    chunkby_dims=['C', 'Z'],
+    z_centered=True,
+    coords=None,
 ):
     """
     Lazily read micromanager generated single frame tiff files.
@@ -132,9 +137,13 @@ def load_mm_frames(
     ----------
     data_dir : str or None
         Path to directory containing Pos{i} subdirectories
-    glob_pattern : str or None
-        Glob pattern to match files in a single directory. If None,
-        all .tif files will be read
+    position_folder_regex : str, default: "Pos[0-9]+"
+        A regular expression to match the folder names specifying positions.
+        E.g. to match Pos0, Pos1, and OtherName0, OtherName1 pass
+        "(Pos|OtherName)[0-9]+"
+    filename_regex : str or None
+        Regular expression to identify which tiff files to read. If None then
+        all .tif[f] files will be read.
     chunkby_dims : list of str default ['C','Z']
         Dimensions to chunk resulting dask array by. X and Y dimensions
         will always be in a single chunk. Can contain any of S, T, C, or Z.
@@ -151,17 +160,27 @@ def load_mm_frames(
         Unevaluated dask array containing all the files from the directory.
         Shape will vary but dimensions will always be (S, T, C, Z, Y, X)
     """
-    if data_dir is None and glob_pattern is None:
-        raise ValueError("Must specify data_dir or glob_pattern")
 
-    position_dirs = sorted(f.path for f in os.scandir(data_dir) if f.is_dir())
+    pos_reg = re.compile(f"{data_dir.rstrip('/')}/" + position_folder_regex)
+    fname_reg = re.compile(filename_regex)
 
-    if len(position_dirs) == 0 and glob_pattern is None:
-        raise ValueError("No subdirectories found and no glob pattern provided")
+    position_dirs = sorted(f.path for f in os.scandir(data_dir) if f.is_dir() and pos_reg.match(f.path))
+
+    def dir_to_df(dir):
+        fseries = pd.Series(sorted(filter(fname_reg.match, glob.glob(dir.rstrip("/")+"/*"))))
+        df = pd.DataFrame({'filename': fseries})
+        df[['C', 'S', 'T', 'Z']] = df.apply(
+            lambda x: re.split(
+                r'img_channel(\d+)_position(\d+)_time(\d+)_z(\d+).tif', x.filename
+            )[1:-1],
+            axis=1,
+            result_type='expand',
+        )
+        return df
 
     if len(position_dirs) > 0:
         for i, pos in enumerate(position_dirs):
-            fseries = pd.Series(sorted(glob.glob(pos + '/*.tif')))
+            fseries = pd.Series(sorted(filter(fname_reg.match, glob.glob(pos+"/*"))))
             df = pd.DataFrame({'filename': fseries})
             df[['C', 'S', 'T', 'Z']] = df.apply(
                 lambda x: re.split(
@@ -170,24 +189,16 @@ def load_mm_frames(
                 axis=1,
                 result_type='expand',
             )
-
             if i == 0:
                 all_files = df
             else:
                 all_files = all_files.append(df)
 
     else:
-        fseries = pd.Series(sorted(glob.glob(data_dir + glob_pattern)))
-        df = pd.DataFrame({'filename': fseries})
-        df[['C', 'S', 'T', 'Z']] = df.apply(
-            lambda x: re.split(r'img_channel(\d+)_position(\d+)_time(\d+)_z(\d+).tif', x.filename)[
-                1:-1
-            ],
-            axis=1,
-            result_type='expand',
-        )
+        all_files = dir_to_df(data_dir)
 
-        all_files = df
+    if len(df) == 0:
+        raise ValueError("No files found")
 
     all_files[['C', 'T', 'S', 'Z']] = all_files[['C', 'T', 'S', 'Z']].astype(int)
 
@@ -223,6 +234,11 @@ def load_mm_frames(
             meta['Summary'], n_times=x_data['T'].values.shape[0], z_centered=z_centered
         )
 
-    x_data = x_data.assign_coords(coords)
+    try:
+        x_data = x_data.assign_coords(coords)
+    except ValueError as e:
+        # can happen if you ignore one of the channels - then the metadata
+        # won't match up with actual shape of the array
+        print(f'Unable to assign coords due to this error:\n{e}')
 
     return x_data.transpose('S', 'T', 'C', 'Z', 'Y', 'X')
