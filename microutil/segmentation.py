@@ -202,7 +202,7 @@ def peak_mask_to_napari_points(peak_mask):
     return points_transformed[~np.isnan(points_transformed).any(axis=1)]
 
 
-def individualize(ds, min_distance=10, connectivity=2, min_area=25):
+def individualize(ds, min_distance=3, connectivity=2, min_area=25):
     """
     Take a dataset and by modifying it inplace turn the mask into individualized
     cell labels and watershed seed points.
