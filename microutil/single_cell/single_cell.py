@@ -1,6 +1,7 @@
 __all__ = [
     "average",
     "center_of_mass",
+    "area",
     "cell_op",
     "bootstrap",
 ]
@@ -17,8 +18,10 @@ def cell_op(
     ds,
     func,
     intensity,
+    Nmax=None,
     exclude_dims=None,
     output_core_dims=None,
+    output_sizes=None,
     label_name='labels',
     cell_dim_name='CellID',
     dims='STCZYX',
@@ -33,10 +36,16 @@ def cell_op(
     intensity : xr.DataArray, str, or None,
         Data array or variable name from which to draw the samples. Should align with ds[label_name].
         If None, an array of ones like ds[label_name] will be used.
+    Nmax : int or None, default None
+        Maximum number of cells in a single frame. Used to pad single frame results to coerce
+        results into array-like shape. If None, the labels Variable in ds will be loaded into
+        memory and the maximum
     exclude_dims : Iterable of str or None, default None
         Names of dimensions that are allowed to change size during apply_ufunc.
     output_core_dims : list of str or None, default None
         Output core dims to pass to apply_ufunc. cell_dim_name is handled automatically.
+    output_sizes : iterable of int, default None
+        Sizes of output core dims, only necessary
     label_name : str, default 'labels'
         Name for the dimension containing the individual cell labels in ds.
     cell_dim_name : str, default "CellID"
@@ -57,6 +66,11 @@ def cell_op(
 
     labels = ds[label_name]
 
+    if Nmax is None:
+        Nmax = labels.max().load().item() + 1
+    else:
+        Nmax += 1  # silly but makes the final array have CellID dim with size Nmax
+
     if exclude_dims is not None:
         tmp_set = set()
         for x in exclude_dims:
@@ -71,17 +85,22 @@ def cell_op(
 
     if output_core_dims is None:
         output_core_dims = [[cell_dim_name]]
+        output_sizes = {cell_dim_name: Nmax - 1}  # we dont return values for the background
 
     else:
         output_core_dims = [[cell_dim_name] + output_core_dims]
+        if output_sizes is not None:
+            output_sizes = dict(zip(output_core_dims, (Nmax, *output_sizes)))
+        else:
+            output_sizes = {cell_dim_name: Nmax}
+
+    dask_gufunc_kwargs = {"output_sizes": output_sizes, "allow_rechunk": True}
 
     if isinstance(intensity, str):
         intensity = ds[intensity]
 
     if intensity is None:
         intensity = xr.ones_like(labels)
-
-    Nmax = labels.isel({T: -1}).max().item()
 
     return xr.apply_ufunc(
         func,
@@ -92,7 +111,24 @@ def cell_op(
         exclude_dims=exclude_dims,
         output_core_dims=output_core_dims,
         vectorize=True,
+        dask="parallelized",
+        dask_gufunc_kwargs=dask_gufunc_kwargs,
     )
+
+
+def area(ds, label_name='labels', cell_dim_name='CellID', dims='STCZYX'):
+    """
+    Compute the area of each labelled region in each frame.
+
+    """
+
+    def padded_area(intensity, labels, Nmax=None):
+        _, areas = np.unique(labels, return_counts=True)
+        areas = areas[1:]
+        out = np.pad(
+            areas.astype(float), (0, Nmax - len(areas) - 1), "constant", constant_values=np.nan
+        )
+        return out
 
 
 def average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='STCZYX'):
@@ -139,6 +175,9 @@ def center_of_mass(ds, com_name='com', label_name='labels', cell_dim_name='CellI
         Dataarray containing the center of mass of each labelled cell in ds.
         Same shape and dims as ds except for YX which are replaced by cell_dim_name.
     """
+    # TODO This should really take an intensity field too - like with cytosolic
+    #      fluorescence we could estimate the actual center of mass rather than the
+    #      centroid of the mask
     # TODO rescale com values according to XY coordinates of ds
     # TODO low priority - write helper function for scattering coms on hyperslicer
 
