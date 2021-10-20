@@ -264,7 +264,6 @@ def fast_otsu(image, nbins=256, eps=0.1):
     """
     im_min = image.min()
     im_max = image.max()
-<<<<<<< HEAD
 
     counts = histogram1d(image, nbins, (im_min - eps, im_max + eps))
 
@@ -273,15 +272,5 @@ def fast_otsu(image, nbins=256, eps=0.1):
     idx = threshold_otsu(nbins=nbins, hist=counts)
 
     threshold = im_min + bin_width * (idx + 0.5)
-=======
-    
-    counts = histogram1d(image, nbins, (im_min-eps, im_max+eps))
-        
-    bin_width = (im_max-im_min)/nbins
-    
-    idx = threshold_otsu(nbins=nbins, hist=counts)
-    
-    threshold = im_min + bin_width*(idx+0.5)
->>>>>>> 2ab125929a916f597ba691bfd3da120b74166a15
 
     return threshold
