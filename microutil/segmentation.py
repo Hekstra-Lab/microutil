@@ -8,6 +8,8 @@ __all__ = [
 ]
 
 
+import warnings
+
 import numpy as np
 import scipy.ndimage as ndi
 import xarray as xr
@@ -16,7 +18,6 @@ from skimage.feature import peak_local_max
 from skimage.filters import threshold_isodata, threshold_otsu
 from skimage.morphology import label
 from skimage.segmentation import watershed
-import warnings
 
 try:
     from fast_histogram import histogram1d
