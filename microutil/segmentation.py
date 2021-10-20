@@ -4,6 +4,7 @@ __all__ = [
     "individualize",
     "watershed_single_frame_preseeded",
     "peak_mask_to_napari_points",
+    "fast_otsu",
 ]
 
 
@@ -12,9 +13,16 @@ import scipy.ndimage as ndi
 import xarray as xr
 from skimage.exposure import equalize_adapthist
 from skimage.feature import peak_local_max
-from skimage.filters import threshold_isodata
+from skimage.filters import threshold_isodata, threshold_otsu
 from skimage.morphology import label
 from skimage.segmentation import watershed
+import warnings
+
+try:
+    from fast_histogram import histogram1d
+except ImportError:
+    warnings.warn("Could not import fast_histogram. 
+                   The function fast_otsu will fail if you call it.")
 
 from .track_utils import _reindex_labels
 
@@ -246,3 +254,22 @@ def individualize(ds, min_distance=3, connectivity=2, min_area=25):
     )
     ds['labels'] = indiv
     ds['peak_mask'] = seeds
+
+
+def fast_otsu(image, nbins=256, eps=0.1):
+    """
+    A thin wrapper around skimage.filter.threshold otsu that uses
+    fast_histogram.histogram1d to make things ~5x faster per image.
+    """
+    im_min = image.min()
+    im_max = image.max()
+    
+    counts = histogram1d(image, nbins, (im_min-eps, im_max+eps))
+        
+    bin_width = (im_max-im_min)/nbins
+    
+    idx = threshold_otsu(nbins=nbins, hist=counts)
+    
+    threshold = im_min + bin_width*(idx+0.5)
+
+    return threshold
