@@ -116,11 +116,16 @@ def cell_op(
     )
 
 
-def area(ds, label_name='labels', cell_dim_name='CellID', dims='STCZYX'):
+def area(ds, Nmax=None, label_name='labels', cell_dim_name='CellID', dims='STCZYX'):
     """
     Compute the area of each labelled region in each frame.
 
     """
+
+    if isinstance(dims, str):
+        S, T, C, Z, Y, X = list(dims)
+    elif isinstance(dims, list):
+        S, T, C, Z, Y, X = dims
 
     def padded_area(intensity, labels, Nmax=None):
         _, areas = np.unique(labels, return_counts=True)
@@ -130,6 +135,17 @@ def area(ds, label_name='labels', cell_dim_name='CellID', dims='STCZYX'):
         )
         return out
 
+    areas = cell_op(
+        ds,
+        padded_area,
+        None,
+        Nmax=Nmax,
+        label_name=label_name,
+        cell_dim_name=cell_dim_name,
+        dims=dims,
+    )
+
+    return areas
 
 def average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='STCZYX'):
     """
@@ -140,6 +156,11 @@ def average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='ST
     dims : str or list of str, default 'STCZYX`
         Dimensions names for `bf` that correspond to STCZYX
     """
+
+    if isinstance(dims, str):
+        S, T, C, Z, Y, X = list(dims)
+    elif isinstance(dims, list):
+        S, T, C, Z, Y, X = dims
 
     def padded_mean(intensity, labels, Nmax=None):
         with warnings.catch_warnings():
