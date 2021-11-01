@@ -8,16 +8,15 @@ __all__ = [
 ]
 
 
-
 import numpy as np
 import scipy.ndimage as ndi
 import xarray as xr
+from fast_histogram import histogram1d
 from skimage.exposure import equalize_adapthist
 from skimage.feature import peak_local_max
 from skimage.filters import threshold_isodata, threshold_otsu
 from skimage.morphology import label
 from skimage.segmentation import watershed
-from fast_histogram import histogram1d
 
 from .track_utils import _reindex_labels
 
