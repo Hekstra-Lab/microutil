@@ -7,10 +7,11 @@ __all__ = [
 
 import numpy as np
 import scipy
+from fast_overlap import overlap
 from scipy import ndimage as ndi
 from scipy.optimize import linear_sum_assignment
 
-from .track_utils import _reindex_labels, overlap, reindex
+from .track_utils import _reindex_labels, reindex
 
 
 def norm(prev, curr):
