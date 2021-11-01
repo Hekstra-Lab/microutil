@@ -8,7 +8,6 @@ __all__ = [
 ]
 
 
-import warnings
 
 import numpy as np
 import scipy.ndimage as ndi
@@ -18,13 +17,7 @@ from skimage.feature import peak_local_max
 from skimage.filters import threshold_isodata, threshold_otsu
 from skimage.morphology import label
 from skimage.segmentation import watershed
-
-try:
-    from fast_histogram import histogram1d
-except ImportError:
-    warnings.warn(
-        "Could not import fast_histogram. The function fast_otsu will fail if you call it."
-    )
+from fast_histogram import histogram1d
 
 from .track_utils import _reindex_labels
 
