@@ -4,7 +4,6 @@ __all__ = [
     "check_cell_numbers",
     "find_duplicate_labels",
     "find_bad_frames",
-    "overlap",
     "clipped_viridis",
 ]
 from copy import copy
@@ -312,43 +311,3 @@ def reindex_labels(ds):
     for s in range(ds.dims['S']):
         for t in range(ds.dims['T']):
             ds['labels'][s, t] = relabel_sequential(ds['labels'][s, t].values)[0]
-
-
-def _py_overlap(prev, curr, shape):
-    p_uniq = np.unique(prev)
-    c_uniq = np.unique(curr)
-    arr = np.zeros(shape)
-    for i in p_uniq:
-        for j in c_uniq:
-            arr[i, j] = np.sum((prev == i) * (curr == j))
-    return arr
-
-
-def overlap(prev, curr, shape):
-    """
-    Calculate the pairwise overlap the labels for two arrays.
-    This will use `fast_overlap` if that library is available.
-
-    Parameters
-    ----------
-    prev, curr : 2D array-like of int
-        curr will have at least as many unique labels as prev
-    shape : tuple of int
-        The shape of the output array. This should reflect the maximum
-        value of labels.
-
-    Returns
-    -------
-    arr : (N, M) array of int
-        N is the number of unique labels in prev and M the number of unique in curr.
-        The ijth entry in the array gives the number of pixels for which label *i* in prev
-        overlaps with *j* in curr.
-    """
-
-    # figure out if masks overlap and make those ones more likely
-    try:
-        from fast_overlap import overlap
-
-        return np.asarray(overlap(prev, curr, shape))
-    except ImportError:
-        return _py_overlap(prev, curr, shape)
