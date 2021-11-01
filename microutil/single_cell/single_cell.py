@@ -147,6 +147,7 @@ def area(ds, Nmax=None, label_name='labels', cell_dim_name='CellID', dims='STCZY
 
     return areas
 
+
 def average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='STCZYX'):
     """
     Compute the average of the inntensity array over each labelled area.
