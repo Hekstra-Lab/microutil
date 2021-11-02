@@ -436,17 +436,18 @@ def relabel_dt(mask, hit_or_miss_size=5):
     new_seeds_arr = ndi.label(new_seeds_arr)[0]
     return watershed(-edt, new_seeds_arr, mask=mask, connectivity=2)
 
+
 def get_neighbor_bbox_and_mask(labels_arr, lookup_mask, structure_size=3, pad=5):
     structure = np.ones((structure_size, structure_size))
-    edges = ndi.binary_dilation(lookup_mask, structure)&(~lookup_mask)
+    edges = ndi.binary_dilation(lookup_mask, structure) & (~lookup_mask)
     neighbors = np.unique(labels_arr[edges])
-    neighbors = neighbors[neighbors>0]
+    neighbors = neighbors[neighbors > 0]
 
     out = lookup_mask
     for n in neighbors:
-        out |= labels_arr==n
+        out |= labels_arr == n
 
-    if out.sum()==0:
+    if out.sum() == 0:
         bbox = None
     else:
         bbox = regionprops_df(out.astype('uint8'), ['bbox'], {}).values.squeeze()
@@ -460,19 +461,19 @@ def relabel_fluo(mask, fluo, thresh, min_distance=3):
     peak_mask[tuple(peak_idx.T)] = 1
     labelled_peaks = label(peak_mask)
     indiv = watershed(-fluo, labelled_peaks, mask=mask)
-#    indiv = relabel_sequential(indiv)[0]
+    #    indiv = relabel_sequential(indiv)[0]
     return indiv
 
 
 def relabel_fluo_framewise(frame_labels, check_labels, frame_fluo, frame_thresh):
     current_max = frame_labels.max()
     new_labels = frame_labels.copy()
-    use_labels = check_labels[check_labels>0]
+    use_labels = check_labels[check_labels > 0]
     for i, lab in enumerate(use_labels):
         if lab not in new_labels:
             continue  # We have already updated that label
 
-        lookup_mask = new_labels==lab
+        lookup_mask = new_labels == lab
         bbox, neighbor_mask = get_neighbor_bbox_and_mask(new_labels, lookup_mask)
         if bbox is None:
             continue  # this cell has been merged out of existence already
@@ -498,59 +499,70 @@ def relabel_fluo_framewise(frame_labels, check_labels, frame_fluo, frame_thresh)
         current_max += cell_count
     return new_labels
 
-def relabel_hybrid(frame_labels, frame_fluo, frame_thresh, check_labels, check_areas, area_low, area_high,  pad_size=3):
+
+def relabel_hybrid(
+    frame_labels,
+    frame_fluo,
+    frame_thresh,
+    check_labels,
+    check_areas,
+    area_low,
+    area_high,
+    pad_size=3,
+):
     current_max = frame_labels.max()
     structure = np.ones((pad_size, pad_size))
     new_labels = frame_labels.copy()
-    use_labels = check_labels[check_labels>0]
-    use_areas = check_areas[check_labels>0]
+    use_labels = check_labels[check_labels > 0]
+    use_areas = check_areas[check_labels > 0]
     for i, lab in enumerate(use_labels):
         if lab not in new_labels:
             continue  # We have already updated that label
-            
-        lookup_mask = new_labels==lab
-        edges = ndi.binary_dilation(lookup_mask, structure)&(~lookup_mask)
-        neighbors, overlaps =  np.unique(new_labels[edges], return_counts=True)
-        not_bkgd = neighbors>0
+
+        lookup_mask = new_labels == lab
+        edges = ndi.binary_dilation(lookup_mask, structure) & (~lookup_mask)
+        neighbors, overlaps = np.unique(new_labels[edges], return_counts=True)
+        not_bkgd = neighbors > 0
         neighbors = neighbors[not_bkgd]
-        if len(neighbors)==0:
+        if len(neighbors) == 0:
             continue  # nobody to merge with
         overlaps = overlaps[not_bkgd]
         bad_neighbors = list(set(use_labels) & set(neighbors))
-        if len(bad_neighbors)==0:
-            if use_areas[i]<area_low:
-                # if its small force merge it 
+        if len(bad_neighbors) == 0:
+            if use_areas[i] < area_low:
+                # if its small force merge it
                 max_overlap = np.argmax(overlaps)
                 new_labels[lookup_mask] = neighbors[max_overlap]
-            elif use_areas[i]>area_high:
+            elif use_areas[i] > area_high:
                 # if its large use fluo and dont consider neighbors
                 mask = lookup_mask.astype('uint8')
-                bbox = regionprops_df(mask, ['bbox'],{}) 
+                bbox = regionprops_df(mask, ['bbox'], {})
                 ymin, xmin, ymax, xmax = bbox.values.squeeze()
                 bbox_mask = mask[ymin:ymax, xmin:xmax].astype(bool)
                 bbox_fluo = frame_fluo[ymin:ymax, xmin:xmax]
                 relabelled = relabel_fluo(bbox_mask, bbox_fluo, frame_thresh)
                 cell_count = np.max(relabelled)
-                new_labels[mask.astype(bool)] = relabelled[bbox_mask]+current_max
+                new_labels[mask.astype(bool)] = relabelled[bbox_mask] + current_max
                 current_max += cell_count
 
-        elif len(bad_neighbors)<3:
-            max_overlap = np.argmax([overlaps[neighbors==bn] for bn in bad_neighbors])
-            new_labels[lookup_mask] = bad_neighbors[max_overlap] 
-        else: #multiple bad neighbors
+        elif len(bad_neighbors) < 3:
+            max_overlap = np.argmax([overlaps[neighbors == bn] for bn in bad_neighbors])
+            new_labels[lookup_mask] = bad_neighbors[max_overlap]
+        else:  # multiple bad neighbors
             mask = lookup_mask
             for n in bad_neighbors:
-                mask |= new_labels==n
+                mask |= new_labels == n
             mask = mask.astype('uint8')
-            bbox = regionprops_df(mask, ['bbox'],{}) 
+            bbox = regionprops_df(mask, ['bbox'], {})
             ymin, xmin, ymax, xmax = bbox.values.squeeze()
             bbox_mask = mask[ymin:ymax, xmin:xmax].astype(bool)
             relabelled = relabel_dt(bbox_mask)
             cell_count = np.max(relabelled)
-            new_labels[mask.astype(bool)] = relabelled[bbox_mask]+current_max
+            new_labels[mask.astype(bool)] = relabelled[bbox_mask] + current_max
             current_max += cell_count
     new_labels = relabel_sequential(new_labels)[0]
     return new_labels
+
 
 def relabel_bad_cells(
     ds,
@@ -608,7 +620,7 @@ def relabel_bad_cells(
             frame_thresh = threshold.data[dims]
 
         # TODO this inner loop could be wrapped and dask.delayed to do this in parallel
-        # That would be advantageous for doing this iteratively since each iteration 
+        # That would be advantageous for doing this iteratively since each iteration
         # could be done with dask rather than just the first.
         # this will be a fxn that takes (label_arr, bad_labels) and return new_labels.
         # That thing could be wrapped in xr.apply_ufunc as long as the set of bad labels
