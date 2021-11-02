@@ -4,14 +4,22 @@ __all__ = [
     "area",
     "cell_op",
     "bootstrap",
+    "regionprops",
+    "regionprops_df",
 ]
 
 import warnings
+from itertools import product
+import os
 
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndi
 import xarray as xr
+from dask import delayed
+import dask.dataframe as dd
+from skimage.measure import regionprops_table
+import numba
 
 
 def cell_op(
@@ -298,3 +306,70 @@ def bootstrap(
             # for var in sample_ds:
             #    bootstrapped[var][out_idx] = sample_ds[var]
     return bootstrapped
+DEFAULT_PROPERTIES = (
+                      'label', 'bbox', 'area', 'convex_area', 'eccentricity', 
+                      'equivalent_diameter', 'euler_number', 'extent', 
+                      'feret_diameter_max', 'perimeter_crofton', 'solidity', 'moments_hu'
+                     )
+def regionprops_df(im, props, other_cols):
+    df = pd.DataFrame(regionprops_table(im, properties=props))
+    for k, v in other_cols.items():
+        df[k] = v
+    return df
+
+def regionprops(ds, properties=DEFAULT_PROPERTIES, label_name='labels', dims='STCZYX'):
+    """
+    Loop over the frames of ds and compute the regionprops for 
+    each labelled image in each frame.
+    """
+    if isinstance(dims, str):
+        S, T, C, Z, Y, X = list(dims)
+    elif isinstance(dims, list):
+        S, T, C, Z, Y, X = dims
+
+    d_regionprops = delayed(regionprops_df)
+
+    loop_dims = {k: v for k,v in ds.labels.sizes.items() if k not in [Y, X]}
+    
+    all_props = []
+
+    for dims in product(*(range(v) for v in loop_dims.values())):
+        other_cols = dict(zip(loop_dims.keys(), dims))
+        frame_props = d_regionprops(ds[label_name].data[dims], properties, other_cols)
+        all_props.append(frame_props)
+
+    cell_props = dd.from_delayed(all_props, meta=all_props[0].compute())
+    cell_props = cell_props.repartition(os.cpu_count()//2)#.compute()
+
+    return cell_props
+
+
+def regionprops_pandas(ds, properties=DEFAULT_PROPERTIES, label_name='labels', dims='STCZYX'):
+    """
+    Loop over the frames of ds and compute the regionprops for 
+    each labelled image in each frame.
+    """
+    if isinstance(dims, str):
+        S, T, C, Z, Y, X = list(dims)
+    elif isinstance(dims, list):
+        S, T, C, Z, Y, X = dims
+
+    def regionprops_df(im, props, other_cols):
+        df = pd.DataFrame(regionprops_table(im, properties=props))
+        for k, v in other_cols.items():
+            df[k] = v
+        return df
+
+    loop_dims = {k: v for k,v in ds.labels.sizes.items() if k not in [Y, X]}
+    
+    all_props = []
+
+    for dims in product(*(range(v) for v in loop_dims.values())):
+        other_cols = dict(zip(loop_dims.keys(), dims))
+        frame_props = regionprops_df(ds[label_name].data[dims], properties, other_cols)
+        all_props.append(frame_props)
+
+    #cell_props = dd.from_delayed(all_props, meta=all_props[0].compute())
+    #cell_props.repartition(os.cpu_count()//2)#.compute()
+    cell_props = pd.concat(all_props)
+    return cell_props
