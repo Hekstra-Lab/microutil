@@ -285,7 +285,7 @@ def bootstrap(
     rng = np.random.default_rng()
 
     bootstrapped = (
-        xr.full_like(intensity.isel(X=0, Y=0).drop([Y, X]), np.nan, dtype=float)
+        xr.full_like(intensity.isel(X=0, Y=0), np.nan, dtype=float)
         .expand_dims({cell_dim_name: Nmax + 1, sample_name: n_samples})
         .copy(deep=True)
     )
@@ -311,6 +311,7 @@ def bootstrap(
 DEFAULT_PROPERTIES = (
     'label',
     'bbox',
+    'centroid',
     'area',
     'convex_area',
     'eccentricity',
@@ -324,14 +325,14 @@ DEFAULT_PROPERTIES = (
 )
 
 
-def regionprops_df(im, props, other_cols):
-    df = pd.DataFrame(regionprops_table(im, properties=props))
+def regionprops_df(labels_im, intensity_im=None, props=DEFAULT_PROPERTIES, other_cols={}):
+    df = pd.DataFrame(regionprops_table(labels_im, intensity_im, properties=props))
     for k, v in other_cols.items():
         df[k] = v
     return df
 
 
-def regionprops(ds, properties=DEFAULT_PROPERTIES, label_name='labels', dims='STCZYX'):
+def regionprops(labels, intensity=None, properties=DEFAULT_PROPERTIES, dims='STCZYX'):
     """
     Loop over the frames of ds and compute the regionprops for
     each labelled image in each frame.
@@ -343,13 +344,18 @@ def regionprops(ds, properties=DEFAULT_PROPERTIES, label_name='labels', dims='ST
 
     d_regionprops = delayed(regionprops_df)
 
-    loop_dims = {k: v for k, v in ds.labels.sizes.items() if k not in [Y, X]}
+    loop_dims = {k: v for k, v in labels.sizes.items() if k not in [Y, X]}
 
     all_props = []
 
     for dims in product(*(range(v) for v in loop_dims.values())):
         other_cols = dict(zip(loop_dims.keys(), dims))
-        frame_props = d_regionprops(ds[label_name].data[dims], properties, other_cols)
+        if intensity is None:
+            use_intensity = None
+        else:
+            use_intensity = intensity.data[dims]
+
+        frame_props = d_regionprops(labels.data[dims], use_intensity, properties, other_cols)
         all_props.append(frame_props)
 
     cell_props = dd.from_delayed(all_props, meta=all_props[0].compute())

@@ -299,6 +299,10 @@ def find_bad_frames(ds, reindex=True):
                 bad.append((s, t))
     return bad
 
+# def find_bad_tracking(ds, max_distance=50, label_name='labels', dims='STCZYX'):
+# 
+#     coms = center_of_mass(ds, label_name=label_name, dims=dims)
+
 
 def reindex_labels(ds):
     """
