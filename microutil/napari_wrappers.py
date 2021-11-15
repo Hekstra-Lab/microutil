@@ -325,7 +325,7 @@ def correct_watershed(ds):
     viewer.bind_key("Control-Shift-l", gogogo_all)
 
 
-def correct_decreasing_cell_frames(ds, bad_frames=None, extra_labels=None):
+def correct_decreasing_cell_frames(ds, underlay=None, bad_frames=None, extra_labels=None):
     """
     Show only the pairs of frames for which cell number decreasing.
     This will modify *ds['labels']* in place when closed or when `ctrl-shift-d` pressed.
@@ -337,6 +337,8 @@ def correct_decreasing_cell_frames(ds, bad_frames=None, extra_labels=None):
     Parameters
     ----------
     ds : (S, T, ..., Y, X) Dataset
+    underlay : xr.DataArray with same sizes as ds['labels]
+        Data to show underneath labels to guide editing
     bad_frames : list of tuple of int, optional
         If *None*, then `find_bad_frames` will be used
     extra_labels : str or list of strings
@@ -361,9 +363,13 @@ def correct_decreasing_cell_frames(ds, bad_frames=None, extra_labels=None):
         for i in bad_frames:
             s_idx.extend([i[0], i[0]])
             t_idx.extend([i[1] - 1, i[1]])
-        BF = (
-            ds['images']
-            .sel(C='BF')
+        if underlay is None:
+            show = ds['images'].sel(C='BF')
+        else:
+            show = underlay
+
+        show_underlay = (
+            show
             .values[:][tuple(s_idx), tuple(t_idx)]
             .reshape(len(t_idx) // 2, 2, *ds['labels'].shape[-2:])
         )
@@ -382,7 +388,7 @@ def correct_decreasing_cell_frames(ds, bad_frames=None, extra_labels=None):
             for other in extra_labels
         ]
 
-        return BF, indiv, other_layers, s_idx, t_idx
+        return show_underlay, indiv, other_layers, s_idx, t_idx
 
     def reassign():
         """
@@ -396,16 +402,16 @@ def correct_decreasing_cell_frames(ds, bad_frames=None, extra_labels=None):
     def check_all(*args):
         reassign()
         nonlocal t_idx, s_idx
-        BF, indiv, other_layers, s_idx, t_idx = gen_data(None)
-        image.data = BF
+        show_underlay, indiv, other_layers, s_idx, t_idx = gen_data(None)
+        image.data = show_underlay
         for data, layer in zip(other_layers, others):
             layer.data = data
 
         labels.data = indiv
 
-    BF, indiv, other_layers, s_idx, t_idx = gen_data(bad_frames)
+    show_underlay, indiv, other_layers, s_idx, t_idx = gen_data(bad_frames)
     viewer = napari.Viewer()
-    image = viewer.add_image(BF)
+    image = viewer.add_image(show_underlay)
     labels = viewer.add_labels(indiv)
     others = [viewer.add_labels(other) for other in other_layers]
     viewer.layers.unselect_all()
