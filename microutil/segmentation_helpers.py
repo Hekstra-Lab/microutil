@@ -43,7 +43,7 @@ def df_to_normalized_arr(df, train_columns=None):
     df : pandas.DataFrame
         Dataframe containing un-normalized data
     train_colums : list[str] or None default None
-        Colums of df to keep for the normalization process. If none, keep all the columns.
+        Columns of df to keep for the normalization process. If none, keep all the columns.
     """
     if train_columns is not None:
         train_df = df[train_columns]
@@ -143,8 +143,8 @@ def make_show_labels(
 
     Parameters
     ----------
-    ds: xr.Datset
-        Datset containing labelled images
+    ds: xr.Dataset
+        Dataset containing labelled images
     label_name: str default "labels"
         Name of labelled image variable in ds.
     show_label_name: str default "show_labels"

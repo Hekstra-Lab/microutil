@@ -263,7 +263,7 @@ def individualize(
     if topology is not None and threshold is None:
 
         raise ValueError(
-            "Must supply a threshold arry which matches non-core dims of topology."
+            "Must supply a threshold array which matches non-core dims of topology."
             "Consider using mu.segmention.fast_otsu on -topology or simply"
             "topology.max(['Y','X']). Failure to pass an array here causes dask"
             "to hang for reasons that I do not fully understand."
@@ -369,7 +369,7 @@ def calc_thresholds(segmentation_images, dims=list('STCZYX')):
 
 def relabel_product(labels_arr, fluo, check_labels, min_distance=3):
     """
-    Relabel an labels array using the product of fluo and the distance tranform
+    Relabel an labels array using the product of fluo and the distance transform
     as the topology for the watershed.
 
     Parameters
@@ -377,7 +377,7 @@ def relabel_product(labels_arr, fluo, check_labels, min_distance=3):
     labels_arr : np.array of int
         Array containing labelled regions
     fluo : np.array
-        Array containg fluorescnence intensities
+        Array containing fluorescnence intensities
     check_labels : np.array of int
         Specific labels in labels_arr which will be updates.
     min_distance : int default 3
@@ -445,7 +445,7 @@ def relabel_dt(mask, hit_or_miss_size=5):
 
     Parameters
     ----------
-    mask: np.array of int or bool
+    mask : np.array of int or bool
         Mask of a single region that needs to be relabeled
     hit_or_miss_size : int default 5
         Size of a square structuring element to be used in
@@ -495,14 +495,14 @@ def merge_overlaps_sequential(prev, curr, overlap_thresh=0.75, area_thresh=200):
     Merge undersegmented cells based on overlaps between cells in successive frames
 
     prev : np.array of int
-        Array containig labelled regions for the earlier time point.
+        Array containing labelled regions for the earlier time point.
     curr : np.array of int
-        Array containig labelled regions for the later time point.
+        Array containing labelled regions for the later time point.
     overlap_thresh : float default 0.75
         Fraction of the area of a cell in prev that must be contained in a cell in
         curr to be elligible to merge.
     area_thresh : int default 200
-        Maximum area of a cell that is allowed to be created in the merging proces.
+        Maximum area of a cell that is allowed to be created in the merging process.
 
     Returns
     -------
@@ -568,7 +568,7 @@ def merge_overlaps(labels, dims=list('STCZYX')):
     labels : xr.DataArray with at least T, Y, and X dimensions.
         Array with labelled regions.
     dims : list[str]
-        Dimension names for the standard 6 dimenions for microsocpy datasets.
+        Dimension names for the standard 6 dimensions for microscopy datasets.
 
     Returns
     -------
