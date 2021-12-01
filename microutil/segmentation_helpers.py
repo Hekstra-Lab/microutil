@@ -33,8 +33,24 @@ def remove_holes_and_objs(im, size):
     return remove_small_objects(remove_small_holes(im, size), size)
 
 
-def df_to_normalized_arr(df, train_columns):
-    train_df = df[train_columns]
+def df_to_normalized_arr(df, train_columns=None):
+    """
+    Normalize the columns of a dataframe by subtracting the mean and dividing by the standard deviation.
+    Helpful if you want to pass a dataframe into sklearn type functions.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe containing un-normalized data
+    train_colums : list[str] or None default None
+        Colums of df to keep for the normalization process. If none, keep all the columns.
+    """
+    if train_columns is not None:
+        train_df = df[train_columns]
+
+    else:
+        train_df = df
+
     X = train_df - train_df.mean(0)
     std_devs = train_df.std(0)
     std_devs[std_devs == 0] = 1
@@ -43,12 +59,33 @@ def df_to_normalized_arr(df, train_columns):
     return X
 
 
-def get_label_arr(df, ds, as_dask=True, dims=list('STCZYX'), label_name='label', area_name='area'):
+def get_label_arr(df, ds, as_dask=True, dims=list('STCZYX'), label_name='label'):
     """
     Return the cell labels column of df in an array that can be aligned with ds.
     If df has a MultiIndex, we will look for S, T, and label_name there. Otherwise
     we expect they are columns.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe containing cell labels and S,T indices.
+    ds : xr.Dataset
+        Dataset with which cell labels need to align
+    as_dask : bool default True
+        Whether to return the data as a dask backed DataArray
+    dims : list[str] default list("STCZYX")
+        Dimension names for the six standard dimensions of microscopy datasets.
+    label_name : str default "label"
+        Name of the column in df that contains cell label id numbers.
+
+    Returns
+    -------
+    return check_labels : xr.DataArray
+        DataArray aligned with non-spatial dimensions of ds that contains the
+        labels of the cells in each FOV padded with zeros for positions that have
+        less than the maximum number of cells.
     """
+
     S, T, C, Z, Y, X = dims
     if S in df and T in df and label_name in df:
         frame_gb = df.groupby([S, T])
