@@ -6,11 +6,13 @@ __all__ = [
     "make_show_labels",
 ]
 
-import numpy as np
-import xarray as xr
 import dask.array as da
-from skimage.morphology import remove_small_holes, remove_small_objects
+import numpy as np
+import pandas as pd
+import xarray as xr
 from skimage.color import label2rgb
+from skimage.morphology import remove_small_holes, remove_small_objects
+
 
 def remove_holes_and_objs(im, size):
     """
@@ -27,7 +29,7 @@ def remove_holes_and_objs(im, size):
     -------
     cleaned_mask : np.array with same shape as im
     """
-        
+
     return remove_small_objects(remove_small_holes(im, size), size)
 
 
@@ -41,12 +43,10 @@ def df_to_normalized_arr(df, train_columns):
     return X
 
 
-def get_label_arr(
-    df, ds, as_dask=True, dims=list('STCZYX'), label_name='label', area_name='area'
-):
+def get_label_arr(df, ds, as_dask=True, dims=list('STCZYX'), label_name='label', area_name='area'):
     """
     Return the cell labels column of df in an array that can be aligned with ds.
-    If df has a MultiIndex, we will look for S, T, and label_name there. Otherwise 
+    If df has a MultiIndex, we will look for S, T, and label_name there. Otherwise
     we expect they are columns.
     """
     S, T, C, Z, Y, X = dims
@@ -60,22 +60,24 @@ def get_label_arr(
             n_cells = sub_df.nunique()[label_name]
             check_labels[(*idx, slice(0, n_cells))] = sub_df[label_name]
     elif isinstance(df.index, pd.MultiIndex):
-        frame_gb = df.groupby(level=[S,T])
-        max_cells =  df.index.get_level_values(label_name).max()
+        frame_gb = df.groupby(level=[S, T])
+        max_cells = df.index.get_level_values(label_name).max()
         frame_shape = (ds.sizes[S], ds.sizes[T])
         check_labels = np.zeros((*frame_shape, max_cells), dtype='uint16')
         # check_areas = np.zeros_like(check_labels)
         for idx, sub_df in frame_gb:
             n_cells = sub_df.index.get_level_values(label_name).nunique()
-            check_labels[(*idx, slice(0, n_cells))] = sub_df.index.get_level_values(label_name).values
+            check_labels[(*idx, slice(0, n_cells))] = sub_df.index.get_level_values(
+                label_name
+            ).values
     else:
         raise ValueError(f"Unable to find Scene ({S}) or Time ({T}) in df")
 
-    
     if as_dask:
         check_labels = da.from_array(check_labels)
     check_labels = xr.DataArray(check_labels, dims=[S, T, 'cells'], coords={T: ds[T]})
     return check_labels
+
 
 def norm_label2rgb(labels):
     """
@@ -136,4 +138,3 @@ def make_show_labels(
         output_dtypes=[np.float64],
         dask_gufunc_kwargs={'output_sizes': {rgb_dim_name: 3}},
     )
-
