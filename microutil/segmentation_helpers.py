@@ -13,6 +13,21 @@ from skimage.morphology import remove_small_holes, remove_small_objects
 from skimage.color import label2rgb
 
 def remove_holes_and_objs(im, size):
+    """
+    Remove small object and holes from a binary mask in one function.
+
+    Parameters
+    ----------
+    im : np.array of Bool or int
+        Mask array
+    size: int
+        Size in pixels below which an object/hole is considered small.
+
+    Returns
+    -------
+    cleaned_mask : np.array with same shape as im
+    """
+        
     return remove_small_objects(remove_small_holes(im, size), size)
 
 
