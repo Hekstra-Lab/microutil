@@ -368,10 +368,8 @@ def correct_decreasing_cell_frames(ds, underlay=None, bad_frames=None, extra_lab
         else:
             show = underlay
 
-        show_underlay = (
-            show
-            .values[:][tuple(s_idx), tuple(t_idx)]
-            .reshape(len(t_idx) // 2, 2, *ds['labels'].shape[-2:])
+        show_underlay = show.values[:][tuple(s_idx), tuple(t_idx)].reshape(
+            len(t_idx) // 2, 2, *ds['labels'].shape[-2:]
         )
         indiv = (
             ds['labels']
