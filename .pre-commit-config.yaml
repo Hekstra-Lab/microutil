@@ -43,4 +43,4 @@ repos:
     rev: cc00f0a
     hooks:
       - id: velin
-        args: [--check]
+        args: [--check, --write]
