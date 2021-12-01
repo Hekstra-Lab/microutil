@@ -541,10 +541,10 @@ def relabel_bad_cells(
     elif isinstance(dims, list):
         S, T, C, Z, Y, X = dims
 
-    if not isinstance(ds[label_name].data, np.ndarray):
-        ds.labels.load()
+    if not isinstance(labels.data, np.ndarray):
+        labels = labels.load()
 
-    current_max = ds.labels.max([Y, X]).data
+    current_max = labels.max([Y, X]).data
 
     if method == "dt":
         raise NotImplementedError("Need to fix relabel_dt")
