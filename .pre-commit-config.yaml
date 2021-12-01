@@ -40,7 +40,7 @@ repos:
       - id: codespell
         args: [--ignore-words-list, hist]
   - repo: https://github.com/Carreau/velin
-    rev: cc00f0a
+    rev: be5a02e
     hooks:
       - id: velin
         args: [--check, --write]
