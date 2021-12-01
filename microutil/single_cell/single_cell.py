@@ -161,8 +161,16 @@ def average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='ST
 
     Parameters
     ----------
+    ds : xr.Dataset
+        Dataset containing labels
+    intensity : xr.DataArray
+        Dataarray containing values that will be averaged over each labelled region.
+    label_name : str
+        Name of Variable in ds that contains labelled regions.
+    cell_dim_name : str default "CellID"
+        Name of dimension in output array that indexes individual cells.
     dims : str or list of str, default 'STCZYX`
-        Dimensions names for `bf` that correspond to STCZYX
+        Dimensions names that correspond to STCZYX
     """
 
     if isinstance(dims, str):
