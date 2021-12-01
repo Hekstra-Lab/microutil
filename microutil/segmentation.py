@@ -15,23 +15,18 @@ __all__ = [
 ]
 
 
+import warnings
+
 import numpy as np
 import scipy.ndimage as ndi
 import xarray as xr
-import warnings
-import dask.array as da
-
-from skimage.color import label2rgb
+from fast_histogram import histogram1d
+from fast_overlap import overlap
 from skimage.exposure import equalize_adapthist
 from skimage.feature import peak_local_max
 from skimage.filters import threshold_isodata, threshold_otsu
 from skimage.morphology import label, remove_small_holes
 from skimage.segmentation import relabel_sequential, watershed
-
-from .segmentation_helpers import *
-
-from fast_histogram import histogram1d
-from fast_overlap import overlap
 
 from .track_utils import _reindex_labels
 
@@ -219,7 +214,15 @@ def peak_mask_to_napari_points(peak_mask):
     return points_transformed[~np.isnan(points_transformed).any(axis=1)]
 
 
-def individualize(ds, topology=None, min_distance=3, connectivity=2, min_area=25, threshold=None, dims=list('STCZYX')):
+def individualize(
+    ds,
+    topology=None,
+    min_distance=3,
+    connectivity=2,
+    min_area=25,
+    threshold=None,
+    dims=list('STCZYX'),
+):
     """
     Take a dataset and by modifying it inplace turn the mask into individualized
     cell labels and watershed seed points.
@@ -249,7 +252,7 @@ def individualize(ds, topology=None, min_distance=3, connectivity=2, min_area=25
 
     if isinstance(topology, str):
         use_topology = ds[topology]
-        topo_core_dims = [Y,X]
+        topo_core_dims = [Y, X]
     elif isinstance(topology, xr.DataArray):
         use_topology = topology
         topo_core_dims = [Y, X]
@@ -265,22 +268,6 @@ def individualize(ds, topology=None, min_distance=3, connectivity=2, min_area=25
             "topology.max(['Y','X']). Failure to pass an array here causes dask"
             "to hang for reasons that I do not fully understand."
         )
-    # if threshold is not None:
-    #     all_dask = (
-    #         isinstance(ds.mask.data, da.Array)
-    #         and isinstance(topology.data, da.Array)
-    #         and isinstance(threshold.data, da.Array)
-    #     )
-    #     all_numpy = (
-    #         isinstance(ds.mask.data, np.ndarray)
-    #         and isinstance(topology.data, np.ndarray)
-    #         and isinstance(threshold.data, np.ndarray)
-    #     )
-
-    # if topology is not None and not (all_dask or all_numpy):
-    #     raise TypeError(
-    #         "ds.mask, topology, and thresh must all be the same type of array (dask or numpy) but found a mix"
-    #     )
 
     def _individualize(mask, topology, threshold):
 
@@ -304,8 +291,8 @@ def individualize(ds, topology=None, min_distance=3, connectivity=2, min_area=25
         ds['mask'],
         use_topology,
         threshold,
-        input_core_dims=[[Y,X], topo_core_dims, []],
-        output_core_dims=[(Y,X), (Y,X)],
+        input_core_dims=[[Y, X], topo_core_dims, []],
+        output_core_dims=[(Y, X), (Y, X)],
         dask="parallelized",
         vectorize=True,
         output_dtypes=['uint16', bool],
@@ -324,7 +311,7 @@ def fast_otsu(image, nbins=256, eps=0.1):
     image : np.ndarrary (M,N)
         Grayscale image from which to compute the threshold.
     nbins : int default 265
-        Number of bins to compute in the histogram. 
+        Number of bins to compute in the histogram.
     eps: float default = 0.1
         Small offset to expand the edges of the histogram by so
         that the minimum-valued elements get appropriately counted.
@@ -342,10 +329,11 @@ def fast_otsu(image, nbins=256, eps=0.1):
 
     return threshold
 
+
 def calc_thresholds(segmentation_images, dims=list('STCZYX')):
     """
     Calculate the threshold for each YX frame in segmentation_images
-    using the Otsu's methon. This works well for cells with a 
+    using the Otsu's methon. This works well for cells with a
     constituituvely, expressed fluorescent marker.
 
     segmentation_images : xr.DataArray
@@ -362,29 +350,34 @@ def calc_thresholds(segmentation_images, dims=list('STCZYX')):
         segmentation_images but with Y X dims dropped.
         Compute the mask with segmentation_images>thresh.
     """
-    S,T,C,Z,Y,X = dims
+    S, T, C, Z, Y, X = dims
 
-    return xr.apply_ufunc(fast_otsu, segmentation_images,
-                          input_core_dims=[[Y,X]], vectorize=True, dask='parallelized',
-                          output_dtypes=[float])
+    return xr.apply_ufunc(
+        fast_otsu,
+        segmentation_images,
+        input_core_dims=[[Y, X]],
+        vectorize=True,
+        dask='parallelized',
+        output_dtypes=[float],
+    )
 
 
 def relabel_product(labels_arr, fluo, check_labels, min_distance=3):
 
     use_labels = check_labels[check_labels > 0]
-    bad_mask = remove_small_holes(np.isin(labels_arr,use_labels))
+    bad_mask = remove_small_holes(np.isin(labels_arr, use_labels))
     dt = ndi.distance_transform_edt(bad_mask)
-    norm_fluo = (fluo - fluo.min())/(fluo.max()-fluo.min())
+    norm_fluo = (fluo - fluo.min()) / (fluo.max() - fluo.min())
 
-    seed_pts = peak_local_max(dt*norm_fluo, min_distance=5)
+    seed_pts = peak_local_max(dt * norm_fluo, min_distance=5)
     seed_mask = np.zeros_like(bad_mask)
     seed_mask[tuple(seed_pts.T)] = 1
     seeds_arr, seed_count = ndi.label(seed_mask)
 
-    fixed_bad = watershed(-dt*norm_fluo, markers=seeds_arr)
+    fixed_bad = watershed(-dt * norm_fluo, markers=seeds_arr)
 
     new_labels = labels_arr.copy()
-    new_labels[bad_mask] = fixed_bad[bad_mask]+labels_arr.max()
+    new_labels[bad_mask] = fixed_bad[bad_mask] + labels_arr.max()
     new_labels = relabel_sequential(new_labels)[0]
     return new_labels
 
@@ -399,17 +392,17 @@ def relabel_fluo(mask, fluo, thresh, min_distance=3):
     ----------
     mask : np.array of bool
         Mask of the region that should be relabelled.
-    fluo : np.array 
+    fluo : np.array
         Fluorescence or similar image to to be inverted and used as watershed topology.
     thresh : float
         Threshold for fluorescence images. Pixels below this value will not be
         assigned a label by watershed.
-    
+
     """
     peak_idx = peak_local_max(fluo, min_distance=min_distance, threshold_abs=thresh)
     peak_mask = np.zeros_like(mask)
     peak_mask[tuple(peak_idx.T)] = 1
-    peak_mask = peak_mask*mask
+    peak_mask = peak_mask * mask
     labelled_peaks = label(peak_mask)
     indiv = watershed(-fluo, labelled_peaks, mask=mask)
     return indiv
@@ -455,7 +448,7 @@ def relabel_dt(mask, hit_or_miss_size=5):
         seeds = np.array(coms).round().astype(int)
 
     new_seeds_arr[tuple(seeds.T)] = 1
-    new_seeds_arr = ndi.label(new_seeds_arr)[0] 
+    new_seeds_arr = ndi.label(new_seeds_arr)[0]
     relabelled = watershed(-edt, new_seeds_arr, mask=mask, connectivity=2)
 
     if mask.sum() != (relabelled > 0).sum():
@@ -467,33 +460,35 @@ def relabel_dt(mask, hit_or_miss_size=5):
     else:
         return mask, relabelled
 
-def merge_overlaps_sequential(prev,curr, overlap_thresh=0.75, area_thresh=200):
+
+def merge_overlaps_sequential(prev, curr, overlap_thresh=0.75, area_thresh=200):
     """
     Merge undersegmented cells based on overlaps between cells in successive frames
     """
     overlaps = overlap(prev, curr)
-    
-    n_prev_in_curr = (overlaps>0).sum(0)
+
+    (overlaps > 0).sum(0)
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        frac_overlaps = overlaps/overlaps.sum(1, keepdims=True)
+        frac_overlaps = overlaps / overlaps.sum(1, keepdims=True)
         # frac_overlaps_ij = fraction of prev_cell_i contained in curr_cell_j
-    
-    candidates = (frac_overlaps>overlap_thresh)
+
+    candidates = frac_overlaps > overlap_thresh
     # multiple cells from prev are essentially contained in a current cell
-    merges = candidates.sum(0)>1
+    merges = candidates.sum(0) > 1
     new_prev = prev.copy()
     current_max = new_prev.max()
-    
-    merge_from, merge_into = np.nonzero(merges&candidates)
+
+    merge_from, merge_into = np.nonzero(merges & candidates)
     for m in np.unique(merge_into):
-        old = merge_from[merge_into==m]
-        if overlaps[old, m].sum()<area_thresh:
+        old = merge_from[merge_into == m]
+        if overlaps[old, m].sum() < area_thresh:
             current_max += 1
             for n in old:
-                new_prev[new_prev==n]=current_max
-    new_prev = relabel_sequential(new_prev)[0] 
+                new_prev[new_prev == n] = current_max
+    new_prev = relabel_sequential(new_prev)[0]
     return new_prev
+
 
 def merge_overlaps_timeseries(labels):
     """
@@ -503,75 +498,24 @@ def merge_overlaps_timeseries(labels):
     new_labels = labels.copy()
     for i in range(1, labels.shape[0]):
         curr = new_labels[-i]
-        prev = new_labels[-i-1]
-        new_labels[-i-1] = merge_overlaps_sequential(prev, curr)
+        prev = new_labels[-i - 1]
+        new_labels[-i - 1] = merge_overlaps_sequential(prev, curr)
     return new_labels
 
-def merge_overlaps(labels, dims = list('STCZYX')):
+
+def merge_overlaps(labels, dims=list('STCZYX')):
     """
     Merge cells based on overlaps between time points for all labels in dataset
     """
-    S,T,C,Z,Y,X = dims
+    S, T, C, Z, Y, X = dims
 
-    return xr.apply_ufunc(merge_overlaps_timeseries, labels,
-                          input_core_dims=[[T,Y,X]], output_core_dims=[[T, Y, X]],
-                          vectorize=True, dask='parallelized', output_dtypes=['uint16'],
-                          dask_gufunc_kwargs={"allow_rechunk":True})
-def relabel_bad_cells(
-    labels,
-    check_labels,
-    method,
-    label_name='labels',
-    dims=list('STCZYX'),
-    threshold=None,
-    fluo=None,
-):
-    """
-    Change ds.labels in place to automatically correct poorly segmented cells.
-    ***Note that currently this does not update the seeds**
-
-    Parameters
-    ----------
-    ds: xr.Dataset
-        Dataset containing the cell labels
-    """
-
-    if isinstance(dims, str):
-        S, T, C, Z, Y, X = list(dims)
-    elif isinstance(dims, list):
-        S, T, C, Z, Y, X = dims
-
-    if not isinstance(labels.data, np.ndarray):
-        labels = labels.load()
-
-    current_max = labels.max([Y, X]).data
-
-    if method == "dt":
-        raise NotImplementedError("Need to fix relabel_dt")
-        relabel = relabel_dt
-    elif method == "fluo":
-        raise NotImplementedError("Need to fix relabel_fluo")
-        relabel = relabel_fluo
-
-        if not (isinstance(fluo, xr.DataArray) and (Y in fluo.dims) and (X in fluo.dims)):
-            raise ValueError("Attempting to use method=\"fluo\" but found invalid fluo kwarg")
-
-        if threshold is None:
-            warnings.warn(
-                "No threshold value passed. Its recommended to get a threshold value\
-                           from applying fast_otsu to each frame in fluorescent images"
-            )
-    elif method == 'product':
-
-        if not (isinstance(fluo, xr.DataArray) and (Y in fluo.dims) and (X in fluo.dims)):
-            raise ValueError("Attempting to use method=\"product\" but found invalid fluo kwarg")
-        relabel = relabel_product
-
-    #fluo = fluo.load()
-    #threshold = threshold.load()
-
-    loop_sizes = {k: v for k, v in ds.labels.sizes.items() if k not in [Y, X]}
-
-    frame_groupby = cell_props_df.groupby(list(loop_sizes.keys()))
-
-
+    return xr.apply_ufunc(
+        merge_overlaps_timeseries,
+        labels,
+        input_core_dims=[[T, Y, X]],
+        output_core_dims=[[T, Y, X]],
+        vectorize=True,
+        dask='parallelized',
+        output_dtypes=['uint16'],
+        dask_gufunc_kwargs={"allow_rechunk": True},
+    )

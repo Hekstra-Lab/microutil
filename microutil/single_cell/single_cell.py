@@ -8,16 +8,16 @@ __all__ = [
     "regionprops_df",
 ]
 
+import os
 import warnings
 from itertools import product
-import os
 
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndi
 import xarray as xr
 from dask import delayed
-import dask.dataframe as dd
 from skimage.measure import regionprops_table
 
 
