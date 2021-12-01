@@ -44,3 +44,4 @@ repos:
     hooks:
       - id: velin
         args: [--check, --write]
+        verbose: true
