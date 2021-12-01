@@ -312,9 +312,14 @@ def fast_otsu(image, nbins=256, eps=0.1):
         Grayscale image from which to compute the threshold.
     nbins : int default 265
         Number of bins to compute in the histogram.
-    eps: float default = 0.1
+    eps : float default = 0.1
         Small offset to expand the edges of the histogram by so
         that the minimum-valued elements get appropriately counted.
+
+    Returns
+    -------
+    threshold : float
+        Threshold value for image. Pixels greater than threshold are considered foreground.
     """
     im_min = image.min()
     im_max = image.max()
@@ -363,6 +368,26 @@ def calc_thresholds(segmentation_images, dims=list('STCZYX')):
 
 
 def relabel_product(labels_arr, fluo, check_labels, min_distance=3):
+    """
+    Relabel an labels array using the product of fluo and the distance tranform
+    as the topology for the watershed.
+
+    Parameters
+    ----------
+    labels_arr : np.array of int
+        Array containing labelled regions
+    fluo : np.array
+        Array containg fluorescnence intensities
+    check_labels : np.array of int
+        Specific labels in labels_arr which will be updates.
+    min_distance : int default 3
+        Minimum distance between local maxima to be used as watershed seeds.
+
+    Returns
+    -------
+    new_labels : np.array of int
+        Updated array of labelled regions.
+    """
 
     use_labels = check_labels[check_labels > 0]
     bad_mask = remove_small_holes(np.isin(labels_arr, use_labels))
@@ -382,7 +407,6 @@ def relabel_product(labels_arr, fluo, check_labels, min_distance=3):
     return new_labels
 
 
-# This can be useful - rewrite to take labels_arr and bad_labels list/arr
 def relabel_fluo(mask, fluo, thresh, min_distance=3):
     """
     Apply the watershed transformation to the masked region with
@@ -397,6 +421,11 @@ def relabel_fluo(mask, fluo, thresh, min_distance=3):
     thresh : float
         Threshold for fluorescence images. Pixels below this value will not be
         assigned a label by watershed.
+
+    Returns
+    -------
+    indiv : np.array of int
+        Labels array.
 
     """
     peak_idx = peak_local_max(fluo, min_distance=min_distance, threshold_abs=thresh)
@@ -418,7 +447,7 @@ def relabel_dt(mask, hit_or_miss_size=5):
     ----------
     mask: np.array of int or bool
         Mask of a single region that needs to be relabeled
-    hit_or_miss_size: int default 5
+    hit_or_miss_size : int default 5
         Size of a square structuring element to be used in
         the hit or miss transform.
 
@@ -464,7 +493,23 @@ def relabel_dt(mask, hit_or_miss_size=5):
 def merge_overlaps_sequential(prev, curr, overlap_thresh=0.75, area_thresh=200):
     """
     Merge undersegmented cells based on overlaps between cells in successive frames
+
+    prev : np.array of int
+        Array containig labelled regions for the earlier time point.
+    curr : np.array of int
+        Array containig labelled regions for the later time point.
+    overlap_thresh : float default 0.75
+        Fraction of the area of a cell in prev that must be contained in a cell in
+        curr to be elligible to merge.
+    area_thresh : int default 200
+        Maximum area of a cell that is allowed to be created in the merging proces.
+
+    Returns
+    -------
+    new_prev : np.array of int
+        Updated labels array for the earlier time point (i.e. prev)
     """
+
     overlaps = overlap(prev, curr)
 
     (overlaps > 0).sum(0)
@@ -494,7 +539,18 @@ def merge_overlaps_timeseries(labels):
     """
     Merge undersegmented cells through a time series by applying merge_overlaps_sequential
     to each pair of frames starting with the end.
+
+    Parameters
+    ----------
+    labels : np.array of int with ndim=3 corresponding to T, Y, X
+        Time series of labelled regions.
+
+    Returns
+    -------
+    new_labels : np.array of int
+        Updated label array.
     """
+
     new_labels = labels.copy()
     for i in range(1, labels.shape[0]):
         curr = new_labels[-i]
@@ -506,6 +562,18 @@ def merge_overlaps_timeseries(labels):
 def merge_overlaps(labels, dims=list('STCZYX')):
     """
     Merge cells based on overlaps between time points for all labels in dataset
+
+    Parameters
+    ----------
+    labels : xr.DataArray with at least T, Y, and X dimensions.
+        Array with labelled regions.
+    dims : list[str]
+        Dimension names for the standard 6 dimenions for microsocpy datasets.
+
+    Returns
+    -------
+    new_labels : xr.DataArray same shape/dims/coords as labels
+        Updated labels after merging.
     """
     S, T, C, Z, Y, X = dims
 
