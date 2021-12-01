@@ -421,6 +421,8 @@ def relabel_fluo(mask, fluo, thresh, min_distance=3):
     thresh : float
         Threshold for fluorescence images. Pixels below this value will not be
         assigned a label by watershed.
+    min_distance : int default 3
+        Minimum distance between local maxima to be used when finding watershed seeds.
 
     Returns
     -------
