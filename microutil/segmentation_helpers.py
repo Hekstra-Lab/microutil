@@ -22,7 +22,7 @@ def remove_holes_and_objs(im, size):
     ----------
     im : np.array of Bool or int
         Mask array
-    size: int
+    size : int
         Size in pixels below which an object/hole is considered small.
 
     Returns
@@ -42,7 +42,7 @@ def df_to_normalized_arr(df, train_columns=None):
     ----------
     df : pandas.DataFrame
         Dataframe containing un-normalized data
-    train_colums : list[str] or None default None
+    train_columns : list[str] or None default None
         Columns of df to keep for the normalization process. If none, keep all the columns.
     """
     if train_columns is not None:
@@ -143,15 +143,15 @@ def make_show_labels(
 
     Parameters
     ----------
-    ds: xr.Dataset
+    ds : xr.Dataset
         Dataset containing labelled images
-    label_name: str default "labels"
+    label_name : str default "labels"
         Name of labelled image variable in ds.
-    show_label_name: str default "show_labels"
+    show_label_name : str default "show_labels"
         Name of the new variable that will contain the colored label images.
-    rgb_dim_name: str default 'rgb'
+    rgb_dim_name : str default 'rgb'
         Name of the dim that will contain the color channels.
-    dims: str or list of str default list('STCZYX')
+    dims : str or list of str default list('STCZYX')
         Names of standard dims in the dataset. Color will be assigned
         to labels in each YX frame independently
 
