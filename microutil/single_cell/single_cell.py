@@ -19,7 +19,6 @@ import xarray as xr
 from dask import delayed
 import dask.dataframe as dd
 from skimage.measure import regionprops_table
-import numba
 
 
 def cell_op(
