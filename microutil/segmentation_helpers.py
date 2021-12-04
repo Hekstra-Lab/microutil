@@ -126,7 +126,7 @@ def norm_label2rgb(labels, color_mode="unique"):
     ----------
     labels : np.array of int
         Array containing labelled regions with background having value 0.
-    colors : str or np.array with shape (N,3)
+    color_mode : str or np.array with shape (N,3)
         One of "unique" or "default". Unique will generate a unique color
         for each labelled region. Default will use skimage 10 color default.
         If provided an array, it will be passed directly to label2rgb. It is
