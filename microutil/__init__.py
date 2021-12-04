@@ -8,5 +8,6 @@ from .masks import *
 from .napari_wrappers import *
 from .preprocess import *
 from .segmentation import *
+from .segmentation_helpers import *
 from .single_cell import single_cell
 from .tracking import *
