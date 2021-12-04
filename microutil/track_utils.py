@@ -94,10 +94,6 @@ def reindex(arr, min_area=None, inplace=True, time_axis="infer", pos_axis="infer
         detect standard labels for xarray. If *arr* is a numpy array with
         ndim 4 then pos_axis will be assumed to be 1. Set to None to force no
         inference and no looping
-    Returns
-    -------
-    modified : array-like
-        The modified array. This is returned even if *inplace* is True.
     """
     # start: nonsense code to infer axis position
     if isinstance(time_axis, str):
