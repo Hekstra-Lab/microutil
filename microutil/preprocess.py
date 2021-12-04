@@ -91,15 +91,15 @@ def xarray_plls(log_power_spec, logR):
     Parameters
     ----------
     log_power_spec : xarray.DataArray
-    Log power spectrum values. Dependent variable for the regression.
+        Log power spectrum values. Dependent variable for the regression.
     logR : xarray.DataArray
-    Log frequency components. Should usually be log_power_spec.group_bins.
-    Independent variable for regression.
+        Log frequency components. Should usually be log_power_spec.group_bins.
+        Independent variable for regression.
 
     Returns
     -------
     slope : xarray.DataArray
-    Coeffiecents from PLLS libear fit for each frame.
+        Coeffiecents from PLLS libear fit for each frame.
     """
     return xr.apply_ufunc(
         lstsq_slope_dropna,

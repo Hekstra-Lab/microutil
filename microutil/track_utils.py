@@ -83,6 +83,8 @@ def reindex(arr, min_area=None, inplace=True, time_axis="infer", pos_axis="infer
     ----------
     arr : (T, X, Y) or (X, Y) array-like
         The mask to reindex
+    min_area : int or None default None
+        Area in pixels below which cells will be dropped.
     inplace : bool, default: True
     time_axis : int or str, optional
         Which axis to treat as the time axis. The default will
@@ -92,10 +94,6 @@ def reindex(arr, min_area=None, inplace=True, time_axis="infer", pos_axis="infer
         detect standard labels for xarray. If *arr* is a numpy array with
         ndim 4 then pos_axis will be assumed to be 1. Set to None to force no
         inference and no looping
-    Returns
-    -------
-    modified : array-like
-        The modified array. This is returned even if *inplace* is True.
     """
     # start: nonsense code to infer axis position
     if isinstance(time_axis, str):
@@ -298,6 +296,11 @@ def find_bad_frames(ds, reindex=True):
                 print(f"{s=}, {t=} - {prev_max} {curr_max}")
                 bad.append((s, t))
     return bad
+
+
+# def find_bad_tracking(ds, max_distance=50, label_name='labels', dims='STCZYX'):
+#
+#     coms = center_of_mass(ds, label_name=label_name, dims=dims)
 
 
 def reindex_labels(ds):
