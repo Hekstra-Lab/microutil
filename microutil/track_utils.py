@@ -83,6 +83,8 @@ def reindex(arr, min_area=None, inplace=True, time_axis="infer", pos_axis="infer
     ----------
     arr : (T, X, Y) or (X, Y) array-like
         The mask to reindex
+    min_area : int or None default None
+        Area in pixels below which cells will be dropped.
     inplace : bool, default: True
     time_axis : int or str, optional
         Which axis to treat as the time axis. The default will
