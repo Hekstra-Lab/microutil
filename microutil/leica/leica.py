@@ -152,6 +152,33 @@ def get_ldm_metadata(data_dir, meta_tag="_Properties.xml"):
     return metadata
 
 
+def get_generic_metadata(data_dir, meta_tag="_Properties.xml"):
+    """
+    Get metadata from and for leica single frame tiffs collected in live data mode.
+    Assumes LDM jobs are titled according to Pos{fov#}_{mode}.
+
+    Parameters
+    ----------
+    data_dir : str
+        Directory containing (meta) data files.
+    meta_tag : str, default "_Properties.xml"
+        Ending for metadata files. The pattern data_dir + "*" + meta_tag
+        will get globbed for.
+
+    Returns
+    -------
+    metadata : pd.DataFrame
+        DataFrame containing metadata from each file found in data_dir.
+    """
+    metadata = pd.DataFrame(sorted(glob.glob(data_dir + "*" + meta_tag)), columns=["filename"])
+    metadata["acq_name"] = metadata.filename.str.split("/").apply(
+        lambda x: x[-1].replace(meta_tag, "")
+    )
+    # metadata = metadata.join(metadata.apply(ldm_meta_split, axis=1, result_type='expand'))
+    metadata = metadata.apply(gogogo_dimension_data, axis=1, result_type='expand')
+    return metadata
+
+
 def gogogo_dimension_data(entry):
     """
     Parse data describing the length of each of the dimensions (TCZYX)
