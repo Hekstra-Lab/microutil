@@ -2,13 +2,82 @@ import dask.array as da
 import numpy as np
 import pandas as pd
 import xarray as xr
+from fast_histogram import histogram1d
 
 __all__ = [
+    "mode_norm",
+    "normalize_fluo",
     "lstsq_slope_dropna",
     "compute_power_spectrum",
     "xarray_plls",
     "squash_zstack",
 ]
+
+
+def mode_norm(arr, n_bins=4096, eps=0.01):
+    """
+    Normalize a single image (arr) by subtracting the mode, zeroing elements
+    less than 0 after subtraction, and dividing by the maximum pixel value.
+
+    Parameters
+    ----------
+    arr : np.array
+        Single image to normalize.
+    n_bins : int default 4096
+        Number of bins in the histogram used to compute the most common
+        pixel value. Default 4096 works well for ~1Mb images.
+    eps : float default 0.01
+        Small offset to expand the edge bins in the histogram by in order
+        to ensure that the min and max pixels are properly included.
+
+    Returns
+    -------
+    normed : np.array (same shape as arr)
+        Image with values normalized to be in the range [0,1]
+    """
+
+    hist_range = (np.min(arr) - eps, np.max(arr) + eps)
+    w = (hist_range[1] - hist_range[0]) / n_bins
+    mode_idx = np.argmax(histogram1d(arr, bins=n_bins, range=hist_range))
+    mode_val = hist_range[0] + w * (mode_idx + 0.5)
+    normed = np.clip((arr - mode_val) / (hist_range[1] - mode_val), 0, 1)
+    return normed
+
+
+def normalize_fluo(imgs, n_bins=4096, eps=0.01, dims=list('STCZYX')):
+    """
+    Normalize all images in a DataArray by applying mode_norm independently
+    to each frame.
+
+    Parameters
+    ----------
+    imgs : xr.DataArray
+        DataArray containing fluorescence images. Can have any number of dims
+        but must have dims corresponding to the 2D spatial dimensions Y and X.
+    n_bins : int default 4096
+        Number of bins in the histogram used to compute the most common
+        pixel value. Default 4096 works well for ~1Mb images.
+    eps : float default 0.01
+        Small offset to expand the edge bins in the histogram by in order
+        to ensure that the min and max pixels are properly included.
+    dims : list of str default list('STCZYX')
+        Dimensions names used in imgs. Only Y and X are explicitly used here.
+
+    Returns
+    -------
+    normed : xr.DataArray same shape as imgs
+        Images with values normalized to be in the range [0,1]
+    """
+    S, T, C, Z, Y, X = dims
+    return xr.apply_ufunc(
+        mode_norm,
+        imgs,
+        kwargs={'n_bins': n_bins, 'eps': eps},
+        input_core_dims=[[Y, X]],
+        output_core_dims=[[Y, X]],
+        vectorize=True,
+        dask='parallelized',
+    )
 
 
 def lstsq_slope_dropna(log_power_spec, logR):
