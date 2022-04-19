@@ -55,7 +55,8 @@ def df_to_normalized_arr(df, train_columns=None):
     std_devs = train_df.std(0)
     std_devs[std_devs == 0] = 1
     X = X / std_devs
-    X = X[train_columns].values
+    if train_columns is not None:
+        X = X[train_columns].values
     return X
 
 
