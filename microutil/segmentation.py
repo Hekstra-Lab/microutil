@@ -12,6 +12,7 @@ __all__ = [
     "merge_overlaps_sequential",
     "merge_overlaps_timeseries",
     "merge_overlaps",
+    "labels_to_zarr",
 ]
 
 
@@ -20,6 +21,7 @@ import warnings
 import numpy as np
 import scipy.ndimage as ndi
 import xarray as xr
+import zarr
 from fast_histogram import histogram1d
 from fast_overlap import overlap
 from skimage.exposure import equalize_adapthist
@@ -589,3 +591,29 @@ def merge_overlaps(labels, dims=list('STCZYX')):
         output_dtypes=['uint16'],
         dask_gufunc_kwargs={"allow_rechunk": True},
     )
+
+
+def labels_to_zarr(labels, out_path):
+    """
+    Persist a label array as a "sparse" zarr on disk.
+
+    Parameters
+    ----------
+    labels : np.ndarray
+        Labelled images in a numpy array
+    out_path : str or Path
+        Destination on disk to save the persistent zarr array
+
+    Returns
+    -------
+    label_zarr: zarr.Array
+        Persistent zarr array holding the same data as labels
+    """
+
+    coords = labels.nonzero()
+    label_vals = labels[coords]
+    label_zarr = zarr.open_array(
+        out_path, shape=labels.shape, dtype=labels.dtype, chunks=(1, 10, -1, -1)
+    )
+    label_zarr.set_coordinate_selection(coords, label_vals)
+    return label_zarr
