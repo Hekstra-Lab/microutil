@@ -2,6 +2,7 @@
 # Must import __version__ first to avoid errors importing this file during the build process.
 # See https://github.com/pypa/setuptools/issues/1724#issuecomment-627241822
 from ._version import __version__
+from .cellpose import cellpose
 from .leica import leica
 from .loading import *
 from .masks import *
