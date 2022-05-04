@@ -1,20 +1,16 @@
 __all__ = [
-    "setup_zarrs",
+    "setup_cellpose_zarrs",
 ]
 
 
-def setup_zarrs(root, group_name, sizes):
+def setup_cellpose_zarrs(group, img_shape):
     """
     Create a group in root and set up arrays to hold the outputs of cellpose
     (masks, probabilities, and flows).
     """
-
-    group = root.create_group(group_name)
-
-    _ = group.zeros(
-        'masks', shape=(sizes['T'], sizes['Y'], sizes['X']), dtype='uint16', chunks=(1, -1, -1)
-    )
-    _ = group.zeros('probs', shape=(sizes['T'], sizes['Y'], sizes['X']), chunks=(1, -1, -1))
-    _ = group.zeros('flows', shape=(sizes['T'], 2, sizes['Y'], sizes['X']))
+    _ = group.zeros('masks', shape=img_shape, dtype='uint16', chunks=(1, -1, -1))
+    _ = group.zeros('flows', shape=(img_shape[0], 2, *img_shape[1:]), chunks=(1, -1, -1))
+    _ = group.zeros('probs', shape=img_shape, chunks=(1, -1, -1))
+    _ = group.zeros('styles', shape=(img_shape[0], 256), chunks=(1, -1))
 
     return group
