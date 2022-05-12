@@ -294,9 +294,12 @@ def ldm_to_time(inds):
     """
     mapper = pd.Series(dtype='uint16')
     for i, s in inds.groupby('S'):
-        mapper = mapper.append(pd.Series(data=np.arange(s['T'].nunique()), index=s['T'].unique()))
+        new_vals = np.arange(s['T'].nunique())
+        old_vals = sorted(s['T'].unique())
+        mapper = mapper.append(pd.Series(data=new_vals, index=old_vals))
     # return mapper
     inds['T'] = mapper[inds['T'].values].values
+    return inds
 
 
 def load_leica_frames(df, idx_mapper, coords=None, chunkby_dims='CZ'):
