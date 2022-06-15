@@ -7,6 +7,7 @@ from fast_histogram import histogram1d
 __all__ = [
     "mode_norm",
     "normalize_fluo",
+    "save_dataset",
     "lstsq_slope_dropna",
     "compute_power_spectrum",
     "xarray_plls",
@@ -14,7 +15,7 @@ __all__ = [
 ]
 
 
-def mode_norm(arr, n_bins=4096, eps=0.01):
+def mode_norm(arr, mode_cutoff_ratio=3.0, n_bins=4096, eps=0.01):
     """
     Normalize a single image (arr) by subtracting the mode, zeroing elements
     less than 0 after subtraction, and dividing by the maximum pixel value.
@@ -23,6 +24,10 @@ def mode_norm(arr, n_bins=4096, eps=0.01):
     ----------
     arr : np.array
         Single image to normalize.
+    mode_cutoff_ratio : float default 3.0
+        Ratio to check for overly bright pixels which will mess
+        with normalization. Larger values will leave more bright spots
+        in the range. Set to 0 to always scale to the brightest pixel.
     n_bins : int default 4096
         Number of bins in the histogram used to compute the most common
         pixel value. Default 4096 works well for ~1Mb images.
@@ -40,11 +45,17 @@ def mode_norm(arr, n_bins=4096, eps=0.01):
     w = (hist_range[1] - hist_range[0]) / n_bins
     mode_idx = np.argmax(histogram1d(arr, bins=n_bins, range=hist_range))
     mode_val = hist_range[0] + w * (mode_idx + 0.5)
-    normed = np.clip((arr - mode_val) / (hist_range[1] - mode_val), 0, 1)
+
+    if (hist_range[1] / mode_val) > mode_cutoff_ratio:
+        scale_val = mode_cutoff_ratio * mode_val
+    else:
+        scale_val = hist_range[1]
+
+    normed = np.clip((arr - mode_val) / (scale_val - mode_val), 0, 1)
     return normed
 
 
-def normalize_fluo(imgs, n_bins=4096, eps=0.01, dims=list('STCZYX')):
+def normalize_fluo(imgs, mode_cutoff_ratio=3.0, n_bins=4096, eps=0.01, dims=list('STCZYX')):
     """
     Normalize all images in a DataArray by applying mode_norm independently
     to each frame.
@@ -54,6 +65,10 @@ def normalize_fluo(imgs, n_bins=4096, eps=0.01, dims=list('STCZYX')):
     imgs : xr.DataArray
         DataArray containing fluorescence images. Can have any number of dims
         but must have dims corresponding to the 2D spatial dimensions Y and X.
+    mode_cutoff_ratio : float default 3.0
+        Ratio to check for overly bright pixels which will mess
+        with normalization. Larger values will leave more bright spots
+        in the range. Set to 0 to always scale to the brightest pixel.
     n_bins : int default 4096
         Number of bins in the histogram used to compute the most common
         pixel value. Default 4096 works well for ~1Mb images.
@@ -72,12 +87,56 @@ def normalize_fluo(imgs, n_bins=4096, eps=0.01, dims=list('STCZYX')):
     return xr.apply_ufunc(
         mode_norm,
         imgs,
-        kwargs={'n_bins': n_bins, 'eps': eps},
+        kwargs={'n_bins': n_bins, 'eps': eps, 'mode_cutoff_ratio': mode_cutoff_ratio},
         input_core_dims=[[Y, X]],
         output_core_dims=[[Y, X]],
         vectorize=True,
         dask='parallelized',
     )
+
+
+def save_dataset(ds, zarr_path, position_slice, scene_char='S'):
+    """
+    Dave a dataset into a specific region of an existing xarray zarr store.
+    Intended to be used in preprocessing scripts where each scene is being
+    independently but we want to keep everything in a single zarr. Primarily
+    exists to wrap xr.Dataset.to_zarr along with the necessary tricks to set
+    up empty variables to write into.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Dataset to save. Typically will have dims T(...)YX
+    zarr_path : str
+        Path to existing zarr store. Must have been create by xarray.
+    position_slice : slice
+        Python slice object to select the current scene from a dataset.
+        Passed to the region kwarg of xr.Dataset.to_zarr.
+    scene_char : str default 'S'
+        Name of the scene dimension.
+
+    Returns
+    -------
+    None: just write the dataset to disk.
+    """
+
+    existing_ds = xr.open_zarr(zarr_path)
+    dummy = _make_dask_dummy(ds).expand_dims({scene_char: existing_ds.sizes[scene_char]})
+    _ = dummy.to_zarr(zarr_path, consolidated=True, compute=False, mode='a')
+    ds.expand_dims(scene_char).to_zarr(zarr_path, region={scene_char: position_slice}, mode='a')
+
+
+def _make_dask_dummy(ds):
+    """
+    Helper function to make a zeros_like dataset that is backed by dask arrays
+    no matter what sorts of arrays are found in the dataset.
+    """
+    dummy = xr.Dataset()
+    for var, arr in ds.items():
+        dummy_arr = xr.DataArray(da.zeros_like(arr), dims=arr.dims, coords=arr.coords)
+        dummy[var] = dummy_arr
+
+    return dummy
 
 
 def lstsq_slope_dropna(log_power_spec, logR):

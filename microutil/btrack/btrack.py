@@ -1,6 +1,5 @@
 import btrack
 import numpy as np
-import pandas as pd
 from skimage.util import map_array
 
 __all__ = [
@@ -14,11 +13,24 @@ def gogogo_btrack(labels, config_file, radius, tracks_out):
     Run btrack on a single position timeseries. Write the track data to h5
     files using the build in export capability of btrack.
 
+    Parameters
+    ----------
+    labels : np.ndarray
+        Images containing single cell labels
+    config_file : str
+        Path to btrack config file.
+    radius : int
+        Maximum search radius for btrack
+    tracks_out : str
+        Path to h5 files where track data will be saved
+
     Returns
     -------
-    all_tracks : pd.DataFrame
-        Dataframe containing track info
+    updated_labels: np.ndarray
+        Array with same shape as labels but with labelled regions
+        consistently labelled through time
     """
+
     objects = btrack.utils.segmentation_to_objects(labels)
 
     with btrack.BayesianTracker(verbose=False) as tracker:
@@ -36,8 +48,10 @@ def gogogo_btrack(labels, config_file, radius, tracks_out):
 
         # generate hypotheses and run the global optimizer
         tracker.export(tracks_out, obj_type='obj_type_1')
-    all_tracks = pd.concat([pd.DataFrame(t.to_dict()) for t in tracker.tracks])
-    return all_tracks
+        tracks = tracker.tracks
+    # all_tracks = pd.concat([pd.DataFrame(t.to_dict()) for t in tracks])
+    tracked_labels = btrack.utils.update_segmentation(labels, tracks)
+    return tracked_labels
 
 
 def tracks_to_labels(segmentation, tracks):
@@ -57,6 +71,9 @@ def tracks_to_labels(segmentation, tracks):
         Array containing the same masks as segmentation but relabeled to
         maintain single cell identity over time.
     """
+    raise DeprecationWarning(
+        "tracks_to_labels is deprecated. Prefer btrack.utils.update_segmentation"
+    )
     track_positions = tracks.loc[~tracks.dummy, ['ID', 't', 'y', 'x']]
     relabeled = np.zeros_like(segmentation)
     for t, df in track_positions.groupby('t'):
