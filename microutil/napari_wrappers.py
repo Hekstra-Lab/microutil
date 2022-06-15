@@ -126,7 +126,7 @@ def manual_segmentation(img, mask=None, time_axis='T'):
 
     Returns
     -------
-    mask :
+    mask
         The mask that was updated by user interactions
     """
     if napari is None:
