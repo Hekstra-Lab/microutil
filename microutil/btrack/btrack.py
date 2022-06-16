@@ -4,7 +4,6 @@ from skimage.util import map_array
 
 __all__ = [
     "gogogo_btrack",
-    "tracks_to_labels",
 ]
 
 
@@ -47,14 +46,16 @@ def gogogo_btrack(labels, config_file, radius, tracks_out):
         tracker.track_interactive(step_size=100)
 
         # generate hypotheses and run the global optimizer
-        tracker.export(tracks_out, obj_type='obj_type_1')
+        tracker.optimize()
+
+        # tracker.export(tracks_out, obj_type='obj_type_1')
         tracks = tracker.tracks
     # all_tracks = pd.concat([pd.DataFrame(t.to_dict()) for t in tracks])
     tracked_labels = btrack.utils.update_segmentation(labels, tracks)
     return tracked_labels
 
 
-def tracks_to_labels(segmentation, tracks):
+def _tracks_to_labels(segmentation, tracks):
     """
     Map btrack output tracks back into a masked array.
 
