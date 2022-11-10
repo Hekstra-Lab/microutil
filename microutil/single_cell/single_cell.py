@@ -135,11 +135,7 @@ def area(ds, Nmax=None, label_name='labels', cell_dim_name='CellID', dims='STCZY
         S, T, C, Z, Y, X = dims
 
     def padded_area(intensity, labels, Nmax=None):
-        _, areas = np.unique(labels, return_counts=True)
-        areas = areas[1:]
-        out = np.pad(
-            areas.astype(float), (0, Nmax - len(areas) - 1), "constant", constant_values=np.nan
-        )
+        out = ndi.sum_labels(intensity, labels, index=np.arange(1, Nmax))
         return out
 
     areas = cell_op(
