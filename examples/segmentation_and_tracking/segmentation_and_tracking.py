@@ -12,7 +12,7 @@ import microutil as mu
 # SETUP #
 #########
 
-t0 = perf_counter
+t0 = perf_counter()
 
 # Path to zarr containing the dataset and the position in the dataset to process
 _, dataset_path, array_id = sys.argv
