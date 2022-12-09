@@ -39,9 +39,9 @@ repos:
     hooks:
       - id: codespell
         args: [--ignore-words-list, hist]
-  - repo: https://github.com/Carreau/velin
-    rev: 0.0.12
-    hooks:
-      - id: velin
-        args: [--check, --write]
-        verbose: true
+  # - repo: https://github.com/Carreau/velin
+  #   rev: 0.0.12
+  #   hooks:
+  #     - id: velin
+  #       args: [--check, --write]
+        # verbose: true

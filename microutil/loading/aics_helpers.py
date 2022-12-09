@@ -117,10 +117,10 @@ def load_tiffs(
         indexer = indexer_maker(indexer)
 
     if files is None:
-        files = pd.Series(Path(folder).glob("*.tiff"))
+        files = pd.Series(Path(folder).absolute().glob("*.tiff"))
         if len(files) == 0:
             # try with single f tiff
-            files = pd.Series(Path(folder).glob("*.tif"))
+            files = pd.Series(Path(folder).absolute().glob("*.tif"))
     else:
         files = pd.Series(files)
     if len(files) == 0:
