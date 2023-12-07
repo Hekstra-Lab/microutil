@@ -194,7 +194,7 @@ def load_mm_frames(
             if i == 0:
                 all_files = df
             else:
-                all_files = all_files.append(df)
+                all_files = pd.concat([all_files, df])
 
     else:
         all_files = dir_to_df(data_dir)
