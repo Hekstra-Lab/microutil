@@ -43,7 +43,7 @@ def gogogo_btrack(labels, config_file, radius, tracks_out):
         tracker.volume = ((0, labels.shape[-2]), (0, labels.shape[-1]), (-1e5, 1e5))
 
         # track them (in interactive mode)
-        tracker.track_interactive(step_size=100)
+        tracker.track(step_size=100)
 
         # generate hypotheses and run the global optimizer
         tracker.optimize()
