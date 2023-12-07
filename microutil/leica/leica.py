@@ -296,7 +296,8 @@ def ldm_to_time(inds):
     for i, s in inds.groupby('S'):
         new_vals = np.arange(s['T'].nunique())
         old_vals = sorted(s['T'].unique())
-        mapper = mapper.append(pd.Series(data=new_vals, index=old_vals))
+        # mapper = mapper.append(pd.Series(data=new_vals, index=old_vals))
+        mapper = pd.concat([mapper, pd.Series(data=new_vals, index=old_vals)])
     # return mapper
     inds['T'] = mapper[inds['T'].values].values
     return inds

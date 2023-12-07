@@ -2,6 +2,7 @@ __all__ = [
     "average",
     "center_of_mass",
     "area",
+    "standard_dev",
     "cell_op",
     "bootstrap",
     "regionprops",
@@ -178,6 +179,42 @@ def average(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='ST
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             out = np.asarray(ndi.mean(intensity, labels=labels, index=np.arange(1, Nmax)))
+        return out
+
+    return cell_op(
+        ds, padded_mean, intensity, label_name=label_name, cell_dim_name=cell_dim_name, dims=dims
+    )
+
+
+def standard_dev(ds, intensity, label_name='labels', cell_dim_name="CellID", dims='STCZYX'):
+    """
+    Compute the standard deviation of the inntensity array over each labelled area.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Dataset containing labels
+    intensity : xr.DataArray
+        Dataarray containing values that will be averaged over each labelled region.
+    label_name : str
+        Name of Variable in ds that contains labelled regions.
+    cell_dim_name : str default "CellID"
+        Name of dimension in output array that indexes individual cells.
+    dims : str or list of str, default 'STCZYX`
+        Dimensions names that correspond to STCZYX
+    """
+
+    if isinstance(dims, str):
+        S, T, C, Z, Y, X = list(dims)
+    elif isinstance(dims, list):
+        S, T, C, Z, Y, X = dims
+
+    def padded_mean(intensity, labels, Nmax=None):
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            out = np.asarray(
+                ndi.standard_deviation(intensity, labels=labels, index=np.arange(1, Nmax))
+            )
         return out
 
     return cell_op(
@@ -372,6 +409,12 @@ def regionprops_pandas(ds, properties=DEFAULT_PROPERTIES, label_name='labels', d
     Loop over the frames of ds and compute the regionprops for
     each labelled image in each frame.
     """
+    warnings.warn(
+        "Use the implementation in dask-regionprops for new code.",
+        DeprecationWarning,
+        stack_level=2,
+    )
+
     if isinstance(dims, str):
         S, T, C, Z, Y, X = list(dims)
     elif isinstance(dims, list):
