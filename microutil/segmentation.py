@@ -263,7 +263,6 @@ def individualize(
         topo_core_dims = []
 
     if topology is not None and threshold is None:
-
         raise ValueError(
             "Must supply a threshold array which matches non-core dims of topology."
             "Consider using mu.segmention.fast_otsu on -topology or simply"
@@ -272,7 +271,6 @@ def individualize(
         )
 
     def _individualize(mask, topology, threshold):
-
         if topology is None:
             topology = -ndi.morphology.distance_transform_edt(mask)
 
