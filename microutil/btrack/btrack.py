@@ -7,7 +7,15 @@ __all__ = [
 ]
 
 
-def gogogo_btrack(labels, config_file, radius, tracks_out):
+def gogogo_btrack(
+    labels,
+    config_file,
+    radius,
+    tracks_out=None,
+    intensity_image=None,
+    properties=(),
+    use_weighted_centroid=True,
+):
     """
     Run btrack on a single position timeseries. Write the track data to h5
     files using the build in export capability of btrack.
@@ -22,6 +30,13 @@ def gogogo_btrack(labels, config_file, radius, tracks_out):
         Maximum search radius for btrack
     tracks_out : str
         Path to h5 files where track data will be saved
+    intensity_image: np.ndarray or None
+        Underlying intensity image from which to compute optional features
+    properties : tuple[str,...]
+        Other properties to compute
+    use_weighted_centroid : bool default True
+        Whether to use the weighted centroid for objects if intensity_image is provided.
+        Default True.
 
     Returns
     -------
@@ -30,7 +45,17 @@ def gogogo_btrack(labels, config_file, radius, tracks_out):
         consistently labelled through time
     """
 
-    objects = btrack.utils.segmentation_to_objects(labels)
+    objects = btrack.utils.segmentation_to_objects(
+        labels,
+        intensity_image=intensity_image,
+        use_weighted_centroid=use_weighted_centroid,
+        properties=properties,
+        num_workers=4,
+    )
+
+    tracking_updates = ['motion']
+    if len(properties) > 0:
+        tracking_updates.append('visual')
 
     with btrack.BayesianTracker(verbose=False) as tracker:
         tracker.configure_from_file(config_file)
@@ -43,14 +68,16 @@ def gogogo_btrack(labels, config_file, radius, tracks_out):
         tracker.volume = ((0, labels.shape[-2]), (0, labels.shape[-1]), (-1e5, 1e5))
 
         # track them (in interactive mode)
-        tracker.track(step_size=100)
+        tracker.track(tracking_updates=tracking_updates, step_size=50)
 
         # generate hypotheses and run the global optimizer
         tracker.optimize()
 
-        # tracker.export(tracks_out, obj_type='obj_type_1')
+        if tracks_out is not None:
+            tracker.export(tracks_out, obj_type='obj_type_1')
+
         tracks = tracker.tracks
-    # all_tracks = pd.concat([pd.DataFrame(t.to_dict()) for t in tracks])
+
     tracked_labels = btrack.utils.update_segmentation(labels, tracks)
     return tracked_labels
 

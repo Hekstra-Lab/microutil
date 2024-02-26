@@ -274,7 +274,7 @@ def individualize(
     def _individualize(mask, topology, threshold):
 
         if topology is None:
-            topology = -ndi.morphology.distance_transform_edt(mask)
+            topology = -ndi.distance_transform_edt(mask)
 
         peak_idx = peak_local_max(-topology, min_distance, threshold_abs=threshold)
         peak_mask = np.zeros_like(mask, dtype=bool)

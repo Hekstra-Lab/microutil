@@ -20,4 +20,4 @@ def open_zarr(path):
     Utility to open an xarray dataset from either dir that pytest might be called from.
     If called from root the path will be different than in the test dir
     """
-    return xr.open_zarr(str(dir_.joinpath(path)))
+    return xr.open_zarr(str(dir_.joinpath(path)), consolidated=False)

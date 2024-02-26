@@ -95,7 +95,7 @@ def normalize_fluo(imgs, mode_cutoff_ratio=3.0, n_bins=4096, eps=0.01, dims=list
     )
 
 
-def save_dataset(ds, zarr_path, position_slice, scene_char='S'):
+def save_dataset(ds, zarr_path, position_slice, scene_char='S', scene_size=None):
     """
     Dave a dataset into a specific region of an existing xarray zarr store.
     Intended to be used in preprocessing scripts where each scene is being
@@ -114,14 +114,19 @@ def save_dataset(ds, zarr_path, position_slice, scene_char='S'):
         Passed to the region kwarg of xr.Dataset.to_zarr.
     scene_char : str default 'S'
         Name of the scene dimension.
+    scene_size : int or None
+        If the zarr store does not exist but you know the number of scenes from another
+        source, pass it here to create the dataset with the appropriate dimension.
 
     Returns
     -------
     None: just write the dataset to disk.
     """
+    if scene_size is None:
+        existing_ds = xr.open_zarr(zarr_path)
+        scene_size = existing_ds.sizes[scene_char]
 
-    existing_ds = xr.open_zarr(zarr_path)
-    dummy = _make_dask_dummy(ds).expand_dims({scene_char: existing_ds.sizes[scene_char]})
+    dummy = _make_dask_dummy(ds).expand_dims({scene_char: scene_size})
     _ = dummy.to_zarr(zarr_path, consolidated=True, compute=False, mode='a')
     ds.expand_dims(scene_char).to_zarr(zarr_path, region={scene_char: position_slice}, mode='a')
 
