@@ -2,6 +2,7 @@
 This function in this file is taken  based on and/or taken from https://github.com/lpbsscientist/YeaZ-GUI
 which is under the MIT license.
 """
+
 # Import tensorflow differently depending on version
 from tensorflow import __version__ as tf_version
 from tensorflow.keras.layers import (
